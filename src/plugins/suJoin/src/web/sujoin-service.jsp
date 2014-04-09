@@ -29,7 +29,7 @@
             plugin.setEnabled(enabled);
         	plugin.setSecret(secret);
             plugin.setAllowedIPs(StringUtils.stringToCollection(allowedIPs));
-            response.sendRedirect("sujoin.jsp?success=true");
+            response.sendRedirect("sujoin-service.jsp?success=true");
             return;
         }
     }
@@ -67,7 +67,7 @@ HTTP requests to the service will be ignored.
     </div><br>
 <% } %>
 
-<form action="sujoin.jsp?save" method="post">
+<form action="sujoin-service.jsp?save" method="post">
 
 <fieldset>
     <legend>SUJoin Service</legend>
