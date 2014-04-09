@@ -68,7 +68,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         userManager = server.getUserManager();
         rosterManager = server.getRosterManager();
 
-        secret = JiveGlobals.getProperty("plugin.userservice.secret", "");
+        secret = JiveGlobals.getProperty("plugin.sujoin.secret", "");
         // If no secret key has been assigned to the user service yet, assign a random one.
         if (secret.equals("")){
             secret = StringUtils.randomString(8);
@@ -76,10 +76,10 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         }
 
         // See if the service is enabled or not.
-        enabled = JiveGlobals.getBooleanProperty("plugin.userservice.enabled", false);
+        enabled = JiveGlobals.getBooleanProperty("plugin.sujoin.enabled", false);
 
         // Get the list of IP addresses that can use this service. An empty list means that this filter is disabled.
-        allowedIPs = StringUtils.stringToCollection(JiveGlobals.getProperty("plugin.userservice.allowedIPs", ""));
+        allowedIPs = StringUtils.stringToCollection(JiveGlobals.getProperty("plugin.sujoin.allowedIPs", ""));
 
         // Listen to system property events
         PropertyEventDispatcher.addListener(this);
@@ -340,12 +340,12 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     }
 
     /**
-     * Sets the secret key that grants permission to use the userservice.
+     * Sets the secret key that grants permission to use the sujoin.
      *
      * @param secret the secret key.
      */
     public void setSecret(String secret) {
-        JiveGlobals.setProperty("plugin.userservice.secret", secret);
+        JiveGlobals.setProperty("plugin.sujoin.secret", secret);
         this.secret = secret;
     }
 
@@ -354,7 +354,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     }
 
     public void setAllowedIPs(Collection<String> allowedIPs) {
-        JiveGlobals.setProperty("plugin.userservice.allowedIPs", StringUtils.collectionToString(allowedIPs));
+        JiveGlobals.setProperty("plugin.sujoin.allowedIPs", StringUtils.collectionToString(allowedIPs));
         this.allowedIPs = allowedIPs;
     }
 
@@ -376,29 +376,29 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
      */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-        JiveGlobals.setProperty("plugin.userservice.enabled",  enabled ? "true" : "false");
+        JiveGlobals.setProperty("plugin.sujoin.enabled",  enabled ? "true" : "false");
     }
 
     public void propertySet(String property, Map<String, Object> params) {
-        if (property.equals("plugin.userservice.secret")) {
+        if (property.equals("plugin.sujoin.secret")) {
             this.secret = (String)params.get("value");
         }
-        else if (property.equals("plugin.userservice.enabled")) {
+        else if (property.equals("plugin.sujoin.enabled")) {
             this.enabled = Boolean.parseBoolean((String)params.get("value"));
         }
-        else if (property.equals("plugin.userservice.allowedIPs")) {
+        else if (property.equals("plugin.sujoin.allowedIPs")) {
             this.allowedIPs = StringUtils.stringToCollection((String)params.get("value"));
         }
     }
 
     public void propertyDeleted(String property, Map<String, Object> params) {
-        if (property.equals("plugin.userservice.secret")) {
+        if (property.equals("plugin.sujoin.secret")) {
             this.secret = "";
         }
-        else if (property.equals("plugin.userservice.enabled")) {
+        else if (property.equals("plugin.sujoin.enabled")) {
             this.enabled = false;
         }
-        else if (property.equals("plugin.userservice.allowedIPs")) {
+        else if (property.equals("plugin.sujoin.allowedIPs")) {
             this.allowedIPs = Collections.emptyList();
         }
     }
