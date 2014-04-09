@@ -12,6 +12,10 @@ Luckily, since March 31st 2014 they migrated from SVN to GitHub! I made a fork w
 
 	git clone https://github.com/straypacket/Openfire.git
 
+or
+
+	git clone git@odin.suj.jp:d.pereira/sujopenfire.git
+
 The plugins section, which is what we're omre interested in, are in `src/plugins/`. The base of our API plug is the directory `userservice`.
 
 To compile plugins, just compile the whole project with from within the root of the project:
