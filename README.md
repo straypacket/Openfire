@@ -6,7 +6,6 @@ About
 
 [Openfire] is a XMPP server licensed under the Open Source Apache License.
 
-
 [Openfire] - an [Ignite Realtime] community project.
 
 Disclaimer
