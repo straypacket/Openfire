@@ -41,7 +41,7 @@
 
 <html>
     <head>
-        <title>SUJoin Service Properties</title>
+        <title>SUJoin Properties</title>
         <meta name="pageID" content="sujoin-service"/>
     </head>
     <body>

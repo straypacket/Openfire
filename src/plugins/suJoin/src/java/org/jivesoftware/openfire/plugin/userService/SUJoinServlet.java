@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.jivesoftware.openfire.plugin.userService;
+package org.jivesoftware.openfire.plugin.SUJoin;
 
 import gnu.inet.encoding.Stringprep;
 
@@ -61,10 +61,10 @@ public class SUJoinServlet extends HttpServlet {
     @Override
 	public void init(ServletConfig servletConfig) throws ServletException {
         super.init(servletConfig);
-        plugin = (SUJoinPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("userservice");
+        plugin = (SUJoinPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("sujoin");
  
         // Exclude this servlet from requiring the user to login
-        AuthCheckFilter.addExclude("userService/userservice");
+        AuthCheckFilter.addExclude("suJoin/sujoin");
     }
 
     @Override
@@ -173,7 +173,7 @@ public class SUJoinServlet extends HttpServlet {
                 replyMessage("ok",response, out);
             }
             else {
-                Log.warn("The userService servlet received an invalid request of type: " + type);
+                Log.warn("The SUJoin servlet received an invalid request of type: " + type);
                 // TODO Do something
             }
         }
@@ -218,6 +218,6 @@ public class SUJoinServlet extends HttpServlet {
 	public void destroy() {
         super.destroy();
         // Release the excluded URL
-        AuthCheckFilter.removeExclude("userService/userservice");
+        AuthCheckFilter.removeExclude("suJoin/sujoin");
     }
 }
