@@ -14,7 +14,7 @@ Disclaimer
 
 This is a fork for in-house usage.
 
-For help on the usage of this work in specific, go to the [plugin](../tree/master/src/plugins/suJoin/) tree.
+For help on the usage of this work in specific, go to the <a href="src/plugins/suJoin/">plugin</a> directory.
 
 [Openfire]: http://www.igniterealtime.org/projects/openfire/index.jsp
 [Ignite Realtime]: http://www.igniterealtime.org
