@@ -3,14 +3,14 @@
 <web-app>
     <!-- Servlets -->
     <servlet>
-        <servlet-name>UserServiceServlet</servlet-name>
-        <servlet-class>org.jivesoftware.openfire.plugin.userService.UserServiceServlet</servlet-class>
+        <servlet-name>SUJoinServlet</servlet-name>
+        <servlet-class>org.jivesoftware.openfire.plugin.SUJoin.SUJoinServlet</servlet-class>
     </servlet>
 
     <!-- Servlet mappings -->
     <servlet-mapping>
-        <servlet-name>UserServiceServlet</servlet-name>
-        <url-pattern>/userservice</url-pattern>
+        <servlet-name>SUJoinServlet</servlet-name>
+        <url-pattern>/sujoin</url-pattern>
     </servlet-mapping>
 
 </web-app>

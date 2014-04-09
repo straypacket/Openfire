@@ -2,7 +2,7 @@
 
 <html>
 <head>
-	<title>User Service Plugin Readme</title>
+	<title>SUJ Join Plugin Readme</title>
     <style type="text/css">
         BODY {
             font-size : 100%;
@@ -51,13 +51,13 @@
 <body>
 
 <h1>
-User Service Plugin Readme
+SUJ Join Plugin Readme
 </h1>
 
 <h2>Overview</h2>
 
 <p>
-The User Service Plugin provides the ability to add,edit,delete users and manage their rosters by sending an http request to the server.
+The SUJ Join Plugin provides the ability to add,edit,delete users and manage their rosters by sending an http request to the server.
 It is intended to be used by applications automating the user administration process.
 This plugin's functionality is useful for applications that need to administer users outside of the Openfire admin console.
 An example of such an application might be a live sports reporting application that uses XMPP as its transport, and
@@ -74,7 +74,7 @@ userservice.jar file over the existing file.</p>
 <h2>Configuration</h2>
 
 Access to the service is restricted with a "secret" that can be viewed and
-set from the User Service page in the Openfire admin console.  This page is
+set from the SUJ Join page in the Openfire admin console.  This page is
 located on the admin console under "Server" and then "Server Settings".
 This should really only be considered weak security. The plugin was initially written with the assumption that http access to the Openfire service was
 only available to trusted machines. In the case of the plugin's author, a web application running on the same server as
@@ -99,7 +99,7 @@ The following parameters can be passed into the request:<p>
 </tr>
 <tr>
     <td class="name">secret</td><td>Required</td>
-    <td>The secret key that allows access to the User Service.</td>
+    <td>The secret key that allows access to the SUJ Join.</td>
 </tr>
 <tr>
     <td class="name">username</td><td>Required</td>
@@ -249,7 +249,7 @@ URLEncoder.encode(username, "UTF-8"));
 
 <h2>Server Reply</h2>
 
-The server will reply to all User Service requests with an XML result page.
+The server will reply to all SUJ Join requests with an XML result page.
 If the request was processed successfully the return will be a "result" element with a text body of "OK".
 If the request was unsuccessful, the return will be an "error" element with a text body of one of the following error strings.
 <p>
@@ -262,7 +262,7 @@ If the request was unsuccessful, the return will be an "error" element with a te
 </tr>
 <tr>
     <td class="name">IllegalArgumentException</td>
-    <td>one of the parameters passed in to the User Service was bad.</td>
+    <td>one of the parameters passed in to the SUJ Join was bad.</td>
 </tr>
 <tr>
     <td class="name">UserNotFoundException</td>
@@ -278,7 +278,7 @@ If the request was unsuccessful, the return will be an "error" element with a te
 </tr>
 <tr>
     <td class="name">UserServiceDisabled</td>
-    <td>The User Service is currently set to disabled in the Admin Console.</td>
+    <td>The SUJ Join is currently set to disabled in the Admin Console.</td>
 </tr>
 <tr>
     <td class="name">SharedGroupException</td>

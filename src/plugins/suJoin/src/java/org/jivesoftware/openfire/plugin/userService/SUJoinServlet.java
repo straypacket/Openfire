@@ -34,7 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.jivesoftware.admin.AuthCheckFilter;
 import org.jivesoftware.openfire.SharedGroupException;
 import org.jivesoftware.openfire.XMPPServer;
-import org.jivesoftware.openfire.plugin.UserServicePlugin;
+import org.jivesoftware.openfire.plugin.SUJoinPlugin;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserNotFoundException;
 import org.jivesoftware.util.Log;
@@ -53,15 +53,15 @@ import org.xmpp.packet.JID;
  *
  * @author Justin Hunt
  */
-public class UserServiceServlet extends HttpServlet {
+public class SUJoinServlet extends HttpServlet {
 
-    private UserServicePlugin plugin;
+    private SUJoinPlugin plugin;
 
 
     @Override
 	public void init(ServletConfig servletConfig) throws ServletException {
         super.init(servletConfig);
-        plugin = (UserServicePlugin) XMPPServer.getInstance().getPluginManager().getPlugin("userservice");
+        plugin = (SUJoinPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("userservice");
  
         // Exclude this servlet from requiring the user to login
         AuthCheckFilter.addExclude("userService/userservice");
@@ -87,7 +87,7 @@ public class UserServiceServlet extends HttpServlet {
                 }
             }
             if (!plugin.getAllowedIPs().contains(ipAddress)) {
-                Log.warn("User service rejected service to IP address: " + ipAddress);
+                Log.warn("SUJoin service rejected service to IP address: " + ipAddress);
                 replyError("RequestNotAuthorised",response, out);
                 return;
             }
@@ -107,8 +107,8 @@ public class UserServiceServlet extends HttpServlet {
        
        // Check that our plugin is enabled.
         if (!plugin.isEnabled()) {
-            Log.warn("User service plugin is disabled: " + request.getQueryString());
-            replyError("UserServiceDisabled",response, out);
+            Log.warn("SUJoin service plugin is disabled: " + request.getQueryString());
+            replyError("SUJoinDisabled",response, out);
             return;
         }
        

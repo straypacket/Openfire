@@ -54,7 +54,7 @@ import org.xmpp.packet.JID;
  *
  * @author Justin Hunt
  */
-public class UserServicePlugin implements Plugin, PropertyEventListener {
+public class SUJoinPlugin implements Plugin, PropertyEventListener {
     private UserManager userManager;
     private RosterManager rosterManager;
     private XMPPServer server;
