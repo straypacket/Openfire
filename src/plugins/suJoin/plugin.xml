@@ -12,7 +12,7 @@
     <adminconsole>		
         <tab id="tab-server">
             <sidebar id="sidebar-server-settings">
-                <item id="sujoin" name="SUJ Join" url="sujoin.jsp"
+                <item id="sujoin" name="SUJ Join" url="sujoin-service.jsp"
                      description="Click to manage the service that allows remote admin of users for JOIN" />
             </sidebar>
         </tab>
