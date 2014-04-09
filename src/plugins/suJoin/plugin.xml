@@ -2,7 +2,7 @@
 
 <plugin>
     <class>org.jivesoftware.openfire.plugin.SUJoinPlugin</class>
-    <name>SUJ Join</name>
+    <name>SUJ Join / Mediline</name>
     <description>Allows administration of users via HTTP requests.</description>
     <author>Daniel Pereira</author>
     <version>0.1.0</version>
@@ -12,7 +12,7 @@
     <adminconsole>		
         <tab id="tab-server">
             <sidebar id="sidebar-server-settings">
-                <item id="sujoin" name="SUJ Join" url="sujoin-service.jsp"
+                <item id="sujoin-service" name="SUJ Join" url="sujoin-service.jsp"
                      description="Click to manage the service that allows remote admin of users for JOIN" />
             </sidebar>
         </tab>
