@@ -67,9 +67,9 @@ creates/deletes users according to the receipt, or non receipt, of a subscriptio
 
 <h2>Installation</h2>
 
-<p>Copy userservice.jar into the plugins directory of your Openfire server. The
+<p>Copy sujoin.jar into the plugins directory of your Openfire server. The
 plugin will then be automatically deployed. To upgrade to a new version, copy the new
-userservice.jar file over the existing file.</p>
+sujoin.jar file over the existing file.</p>
 
 <h2>Configuration</h2>
 
@@ -82,9 +82,9 @@ Openfire makes the request.
 
 <h2>Using the Plugin</h2>
 
-To administer users, submit HTTP requests to the userservice service.
-The service address is [hostname]plugins/userService/userservice. For example,
-if your server name is "example.com", the URL is http://example.com/plugins/userService/userservice<p>
+To administer users, submit HTTP requests to the sujoin service.
+The service address is [hostname]plugins/suJoin/sujoin. For example,
+if your server name is "example.com", the URL is http://example.com/plugins/suJoin/sujoin<p>
 
 The following parameters can be passed into the request:<p>
 
@@ -144,7 +144,7 @@ The following example adds a user
 <ul>
 <form>
 <textarea cols=65 rows=3 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=add&secret=bigsecret&username=kafka&password=drowssap&name=franz&email=franz@kafka.com
+http://example.com:9090/plugins/suJoin/sujoin?type=add&secret=bigsecret&username=kafka&password=drowssap&name=franz&email=franz@kafka.com
 </textarea>
 </form>
 </ul>
@@ -154,7 +154,7 @@ The following example adds a user, adds two shared groups (if not existing) and 
 <ul>
 <form>
 <textarea cols=65 rows=3 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=add&secret=bigsecret&username=kafka&password=drowssap&name=franz&email=franz@kafka.com&groups=support,finance
+http://example.com:9090/plugins/suJoin/sujoin?type=add&secret=bigsecret&username=kafka&password=drowssap&name=franz&email=franz@kafka.com&groups=support,finance
 </textarea>
 </form>
 </ul>
@@ -164,7 +164,7 @@ The following example deletes a user and all roster items of the user.
 <ul>
 <form>
 <textarea cols=65 rows=4 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=delete&secret=bigsecret&username=kafka
+http://example.com:9090/plugins/suJoin/sujoin?type=delete&secret=bigsecret&username=kafka
 </textarea>
 </form>
 </ul>
@@ -174,7 +174,7 @@ The following example disables a user (lockout)
 <ul>
 <form>
 <textarea cols=65 rows=4 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=disable&secret=bigsecret&username=kafka
+http://example.com:9090/plugins/suJoin/sujoin?type=disable&secret=bigsecret&username=kafka
 </textarea>
 </form>
 </ul>
@@ -184,7 +184,7 @@ The following example enables a user (removes lockout)
 <ul>
 <form>
 <textarea cols=65 rows=4 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=enable&secret=bigsecret&username=kafka
+http://example.com:9090/plugins/suJoin/sujoin?type=enable&secret=bigsecret&username=kafka
 </textarea>
 </form>
 </ul>
@@ -195,7 +195,7 @@ The following example updates a user
 <ul>
 <form>
 <textarea cols=65 rows=3 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=update&secret=bigsecret&username=kafka&password=drowssap&name=franz&email=beetle@kafka.com
+http://example.com:9090/plugins/suJoin/sujoin?type=update&secret=bigsecret&username=kafka&password=drowssap&name=franz&email=beetle@kafka.com
 </textarea>
 </form>
 </ul>
@@ -205,7 +205,7 @@ The following example adds new roster item with subscription 'both' for user 'ka
 <ul>
 <form>
 <textarea cols=65 rows=3 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=add_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com&name=franz&subscription=3
+http://example.com:9090/plugins/suJoin/sujoin?type=add_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com&name=franz&subscription=3
 </textarea>
 </form>
 </ul>
@@ -215,7 +215,7 @@ The following example adds new roster item with subscription 'both' for user 'ka
 <ul>
 <form>
 <textarea cols=65 rows=3 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=add_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com&name=franz&subscription=3&groups=family,friends
+http://example.com:9090/plugins/suJoin/sujoin?type=add_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com&name=franz&subscription=3&groups=family,friends
 </textarea>
 </form>
 </ul>
@@ -225,7 +225,7 @@ The following example updates existing roster item to subscription 'none' for us
 <ul>
 <form>
 <textarea cols=65 rows=3 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=update_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com&name=franz&subscription=0
+http://example.com:9090/plugins/suJoin/sujoin?type=update_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com&name=franz&subscription=0
 </textarea>
 </form>
 </ul>
@@ -235,7 +235,7 @@ The following example deletes a specific roster item 'franz@kafka.com' for user 
 <ul>
 <form>
 <textarea cols=65 rows=3 wrap=virtual>
-http://example.com:9090/plugins/userService/userservice?type=delete_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com
+http://example.com:9090/plugins/suJoin/sujoin?type=delete_roster&secret=bigsecret&username=kafka&item_jid=franz@example.com
 </textarea>
 </form>
 </ul>
