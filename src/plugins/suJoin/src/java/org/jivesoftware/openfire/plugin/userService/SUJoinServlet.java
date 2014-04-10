@@ -68,7 +68,7 @@ public class SUJoinServlet extends HttpServlet {
     }
 
     @Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException
     {
         // Printwriter for writing out responses to browser
@@ -206,12 +206,6 @@ public class SUJoinServlet extends HttpServlet {
         response.setContentType("text/xml");        
         out.println("<error>" + error + "</error>");
         out.flush();
-    }
-    
-    @Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        doGet(request, response);
     }
 
     @Override

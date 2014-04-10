@@ -45,6 +45,25 @@ To install, unpack the .jar file with:
 	
 This will install the plugin and you'll be able to see the plugin in action from OpenFire's web interface, at `Server/Server Settings`. No need to restart the servers.
 
+Usage
+-----
+
+To use the plugin, go to the `Server/Server Settings/SUJ Join` and enable it. Copy the `Secret key` and use it according to the documentation. A Ruby client that can be adapted makes use of the same API at [2].
+For obvious safety reasons, we only support POST requests.
+
+**[EXAMPLE]** Add user with wget:
+
+	wget -S -O - -T 1 -t 1 -nv -q --post-data="type=add&secret=secretkey&username=kafka&password=drowssap&name=franz&email=franz@kafka.com" "http://example.com:9090/plugins/suJoin/sujoin
+
+Reply should be:
+
+	HTTP/1.1 200 OK
+	Set-Cookie: JSESSIONID=kjhgkjguyf;Path=/
+  	Expires: Thu, 01 Jan 1970 00:00:00 GMT
+  	Content-Type: text/xml;charset=UTF-8
+	Transfer-Encoding: chunked
+	<result>ok</result>	
+
 
 About
 -----
