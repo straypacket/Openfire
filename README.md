@@ -66,6 +66,7 @@ Reply should be:
 	Transfer-Encoding: chunked
 	<result>ok</result>	
 
+You can use any other tool, such as curl.
 
 SUJ Message Handler
 -------------------
