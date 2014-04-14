@@ -497,11 +497,16 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
             Packet original = packet;
 
+            // Add date to message packets
+            Packet dated_packet = sujMessageHandler.addDate(packet);
+            original = dated_packet;
+
             if (Log.isDebugEnabled()) {
-                Log.debug("Content filter: intercepted packet:"
+                Log.debug("SUJ Message Handler: modified packet:"
                         + original.toString());
             }
 
+            /*
             // make a copy of the original packet only if required,
             // as it's an expensive operation
             if (violationNotificationEnabled
@@ -562,17 +567,18 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                     throw rejected;
                 }
             }
+            */
         }
     }
 
-    private boolean isValidTargetPacket(Packet packet, boolean read,
-            boolean processed) {
-        return patternsEnabled
-                && !processed
+    private boolean isValidTargetPacket(Packet packet, boolean read, boolean processed) {
+        //return patternsEnabled
+        return  !processed
                 && read
                 && (packet instanceof Message || (filterStatusEnabled && packet instanceof Presence));
     }
 
+/*
     private void sendViolationNotification(Packet originalPacket) {
         String subject = "Content filter notification! ("
                 + originalPacket.getFrom().getNode() + ")";
@@ -656,4 +662,5 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             Log.error("Content Filter: Failed to send email, please review Openfire setup", e);
         }
     }
+*/
 }

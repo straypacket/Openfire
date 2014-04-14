@@ -20,11 +20,16 @@
 
 package org.jivesoftware.openfire.plugin;
 
+import org.jivesoftware.openfire.XMPPServer;
+import org.jivesoftware.util.StringUtils;
+import org.jivesoftware.util.XMPPDateTimeFormat;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Date;
 
 import org.dom4j.Element;
 import org.xmpp.packet.Message;
@@ -122,6 +127,24 @@ public class SUJMessageHandler {
         return mask != null;
     }
     
+    /**
+     * Adds date to packet.
+     *
+     * @param packet the packet to modify
+     * @return packet
+     */
+    public Packet addDate(Packet p) {        
+        Message message = (Message) p;
+        Date creationDate = new Date(Long.parseLong(StringUtils.dateToMillis(new java.util.Date()), 10));
+
+        // Add a delayed delivery (XEP-0203) element to the message.
+        Element delay = message.addChildElement("delay", "urn:xmpp:delay");
+        delay.addAttribute("from", p.getFrom().toString());
+        delay.addAttribute("stamp", XMPPDateTimeFormat.format(creationDate));
+
+        return (Packet) message;
+    }
+
     /**
      * Filters packet content.
      *
