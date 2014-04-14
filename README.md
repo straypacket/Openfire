@@ -28,14 +28,16 @@ Make sure you build the project with the same architecture as the one used in th
 
 This process will compile the binary .jar file into `../work/plugins`
 	
-Now just copy the resulting .jar file into the servers. If the plugin works as expected, push your changes to git.
+If the plugin works as expected, push your changes to git.
 
-You should copy the userservice plugin (in our repo it's already called `suJoin`) and all the above commands should work without any problems.
+If you want to create a new plugin, you should copy one of the existing plugins and carefully refactor the names of the classes, packages and URLs. After that, all the above commands should work without any problems.
 
 SUJoin API
 ----------
 
-To install self-developped plugins, that do not appear in the official plugin list, we need to copy the .jar file from the previous compilation to the `plugins` directory from the root openfire directory:
+To install self-developped plugins, use the webservice upload feature, in `Plugins\Upload Plugin` to upload the generated .jar file.
+
+Alternatively, **and in a less safe manner**, copy the .jar file from the previous compilation to the `plugins` directory from the root openfire directory:
 
 	scp -i AWS_KEY.pem work/plugins/suJoin.jar ubuntu@EC2-INSTANCE:openfire/plugins/
 	
@@ -64,6 +66,21 @@ Reply should be:
 	Transfer-Encoding: chunked
 	<result>ok</result>	
 
+
+SUJ Message Handler
+-------------------
+
+To install self-developped plugins, use the webservice upload feature, in `Plugins\Upload Plugin` to upload the generated .jar file.
+
+Alternatively, **and in a less safe manner**, copy the .jar file from the previous compilation to the `plugins` directory from the root openfire directory:
+
+        scp -i AWS_KEY.pem work/plugins/sujMessageHandler.jar ubuntu@EC2-INSTANCE:openfire/plugins/
+
+To install, unpack the .jar file with:
+
+        unzip sujMessageHandler.jar
+
+This will install the plugin and you'll be able to see the plugin in action from OpenFire's web interface, at `Server/Server Settings`. No need to restart the servers.
 
 About
 -----
