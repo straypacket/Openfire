@@ -177,17 +177,17 @@ public class SUJArchiveHandlerPlugin implements Plugin, PacketInterceptor {
     public void interceptPacket(Packet packet, Session session, boolean read,
             boolean processed) throws PacketRejectedException {
 
-        if (isValidAddDataPacket(packet, read, processed)) {
+        if (isValidUnreadQueryPacket(packet, read, processed)) {
 
             Packet original = packet;
 
             if (Log.isDebugEnabled()) {
-                Log.debug("SUJ Message Handler: modified packet:"
+                Log.debug("SUJ Archive Handler: modified packet:"
                         + original.toString());
             }
         }
         
-        if (isValidMsgQueryPacket(packet, read, processed)) {
+        if (isValidHistoryQueryPacket(packet, read, processed)) {
             /*
             IQ original = packet;
 
@@ -213,13 +213,13 @@ public class SUJArchiveHandlerPlugin implements Plugin, PacketInterceptor {
 
     }
 
-    private boolean isValidAddDataPacket(Packet packet, boolean read, boolean processed) {
+    private boolean isValidUnreadQueryPacket(Packet packet, boolean read, boolean processed) {
         return  !processed
                 && read
                 && (packet instanceof Message || (packet instanceof Presence));
     }
 
-    private boolean isValidMsgQueryPacket(Packet packet, boolean read, boolean processed) {
+    private boolean isValidHistoryQueryPacket(Packet packet, boolean read, boolean processed) {
         return  !processed
                 && read;
                 //&& packet instanceof IQ 
