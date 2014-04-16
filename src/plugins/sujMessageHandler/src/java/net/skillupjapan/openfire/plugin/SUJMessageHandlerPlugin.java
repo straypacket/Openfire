@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.jivesoftware.openfire.plugin;
+package net.skillupjapan.openfire.plugin;
 
 import java.io.File;
 import java.util.regex.PatternSyntaxException;
@@ -42,6 +42,7 @@ import org.xmpp.packet.Message;
 import org.xmpp.packet.Packet;
 import org.xmpp.packet.Presence;
 
+import org.jivesoftware.database.DbConnectionManager;
 /**
  * Content filter plugin.
  * 
@@ -493,7 +494,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     public void interceptPacket(Packet packet, Session session, boolean read,
             boolean processed) throws PacketRejectedException {
 
-        if (isValidTargetPacket(packet, read, processed)) {
+        if (isValidAddDataPacket(packet, read, processed)) {
 
             Packet original = packet;
 
@@ -505,6 +506,31 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 Log.debug("SUJ Message Handler: modified packet:"
                         + original.toString());
             }
+        }
+        
+        if (isValidMsgQueryPacket(packet, read, processed)) {
+            /*
+            IQ original = packet;
+
+            Log.error("SUJ Message Handler: MSG Query packet"
+                        + original.toString());
+            Log.error("Extension:"
+                        + original.getExtension());
+
+            PacketExtension pkt_ex = original.getExtension();
+            boolean res = original.deleteExtension();
+
+            // Same?
+            Element elem = pkt_ex.getElement();
+            Element child_elem = original.getChildElement();
+
+            */
+
+
+            // Create reply
+            //IQ reply = original.createResultIQ();
+
+        }
 
             /*
             // make a copy of the original packet only if required,
@@ -568,14 +594,23 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 }
             }
             */
-        }
+
     }
 
-    private boolean isValidTargetPacket(Packet packet, boolean read, boolean processed) {
+    private boolean isValidAddDataPacket(Packet packet, boolean read, boolean processed) {
         //return patternsEnabled
         return  !processed
                 && read
                 && (packet instanceof Message || (filterStatusEnabled && packet instanceof Presence));
+    }
+
+    private boolean isValidMsgQueryPacket(Packet packet, boolean read, boolean processed) {
+        //return patternsEnabled
+        return  !processed
+                && read;
+                //&& packet instanceof IQ 
+                //&& packet.getType() == "get" 
+                //&& packet.isRequest();
     }
 
 /*

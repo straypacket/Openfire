@@ -1,7 +1,7 @@
 <%@ page import="java.util.*,
                  org.jivesoftware.openfire.XMPPServer,
                  org.jivesoftware.util.*,
-                 org.jivesoftware.openfire.plugin.SUJoinPlugin"
+                 net.skillupjapan.openfire.plugin.SUJoinPlugin"
     errorPage="error.jsp"
 %>
 

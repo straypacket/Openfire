@@ -185,6 +185,11 @@ public class LocalMUCRoom implements MUCRoom {
     private ConcurrentMap<JID, String> members = new ConcurrentHashMap<JID,String>();
 
     /**
+     * List of chatroom's nonoccupants. The list contains only bare jid, mapped to a nickname.
+     */
+    private ConcurrentMap<JID, String> nonoccupants = new ConcurrentHashMap<JID,String>();
+
+    /**
      * List of chatroom's outcast. The list contains only bare jid of not allowed users.
      */
     private List<JID> outcasts = new CopyOnWriteArrayList<JID>();
@@ -847,6 +852,7 @@ public class LocalMUCRoom implements MUCRoom {
         lock.writeLock().lock();
         try {
             // Removes the role from the room
+            // Raspu idea
             removeOccupantRole(leaveRole, event.isOriginator());
 
             // TODO Implement this: If the room owner becomes unavailable for any reason before
@@ -1173,6 +1179,13 @@ public class LocalMUCRoom implements MUCRoom {
             // other cluster nodes
             if (occupant.isLocal() && !occupant.isVoiceOnly()) {
                 occupant.send(message);
+            }
+        }
+        // Send message to members not in room, connected to the JVM
+        for (JID memberJID : members.keySet()) {
+            if (!occupantsByFullJID.containsKey(memberJID)) {
+                message.setTo(memberJID);
+                router.route(message);
             }
         }
         if (messageRequest.isOriginator() && isLogEnabled()) {

@@ -2,7 +2,7 @@
 <plugin>
 
     <!-- Main plugin class -->
-    <class>org.jivesoftware.openfire.plugin.SUJMessageHandlerPlugin</class>
+    <class>net.skillupjapan.openfire.plugin.SUJMessageHandlerPlugin</class>
     
     <!-- Plugin meta-data -->
     <name>SUJ Message Handler</name>

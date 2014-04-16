@@ -4,7 +4,7 @@
     <!-- Servlets -->
     <servlet>
         <servlet-name>SUJoinServlet</servlet-name>
-        <servlet-class>org.jivesoftware.openfire.plugin.SUJoin.SUJoinServlet</servlet-class>
+        <servlet-class>net.skillupjapan.openfire.plugin.SUJoin.SUJoinServlet</servlet-class>
     </servlet>
 
     <!-- Servlet mappings -->

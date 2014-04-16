@@ -17,7 +17,7 @@
  * limitations under the License.
  */
 
-package org.jivesoftware.openfire.plugin;
+package net.skillupjapan.openfire.plugin;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -52,7 +52,7 @@ import org.xmpp.packet.JID;
 /**
  * Plugin that allows the administration of users via HTTP requests.
  *
- * @author Justin Hunt
+ * @author Justin Hunt, Daniel Pereira
  */
 public class SUJoinPlugin implements Plugin, PropertyEventListener {
     private UserManager userManager;

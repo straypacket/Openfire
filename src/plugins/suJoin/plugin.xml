@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <plugin>
-    <class>org.jivesoftware.openfire.plugin.SUJoinPlugin</class>
+    <class>net.skillupjapan.openfire.plugin.SUJoinPlugin</class>
     <name>SUJ Join / Mediline</name>
     <description>Allows administration of users via HTTP requests.</description>
     <author>Daniel Pereira</author>

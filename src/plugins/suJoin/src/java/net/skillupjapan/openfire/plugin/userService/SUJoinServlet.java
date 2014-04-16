@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.jivesoftware.openfire.plugin.SUJoin;
+package net.skillupjapan.openfire.plugin.SUJoin;
 
 import gnu.inet.encoding.Stringprep;
 
@@ -34,7 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.jivesoftware.admin.AuthCheckFilter;
 import org.jivesoftware.openfire.SharedGroupException;
 import org.jivesoftware.openfire.XMPPServer;
-import org.jivesoftware.openfire.plugin.SUJoinPlugin;
+import net.skillupjapan.openfire.plugin.SUJoinPlugin;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserNotFoundException;
 import org.jivesoftware.util.Log;
@@ -51,7 +51,7 @@ import org.xmpp.packet.JID;
  * to authenticate the request. If this parameter is missing from the request then
  * an error will be logged and no action will occur.
  *
- * @author Justin Hunt
+ * @author Justin Hunt, Daniel Pereira
  */
 public class SUJoinServlet extends HttpServlet {
 

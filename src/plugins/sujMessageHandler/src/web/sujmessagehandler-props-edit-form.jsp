@@ -1,7 +1,7 @@
 <%@ page import="java.util.*,
                  org.jivesoftware.openfire.XMPPServer,
                  org.jivesoftware.openfire.user.*,
-				 org.jivesoftware.openfire.plugin.SUJMessageHandlerPlugin,
+				 net.skillupjapan.openfire.plugin.SUJMessageHandlerPlugin,
                  org.jivesoftware.util.*"
 %>
 <%@ page import="java.util.regex.Pattern"%>

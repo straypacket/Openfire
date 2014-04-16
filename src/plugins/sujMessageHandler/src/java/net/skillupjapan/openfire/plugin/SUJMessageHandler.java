@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package org.jivesoftware.openfire.plugin;
+package net.skillupjapan.openfire.plugin;
 
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.util.StringUtils;

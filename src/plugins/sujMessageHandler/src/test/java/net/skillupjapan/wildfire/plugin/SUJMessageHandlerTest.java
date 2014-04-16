@@ -1,4 +1,4 @@
-package org.jivesoftware.openfire.plugin;
+package net.skillupjapan.openfire.plugin;
 
 import junit.framework.TestCase;
 import org.dom4j.Document;
