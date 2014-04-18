@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-package net.skillupjapan.openfire.plugin;
+package net.skillupjapan.openfire;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -59,9 +59,9 @@ import org.jivesoftware.database.DbConnectionManager;
  * 
  * @author Daniel Pereira
  */
-public class SUJArchiveHandlerPlugin implements Plugin, PacketInterceptor {
+public class SUJArchiveHandler implements Plugin, PacketInterceptor {
 
-    private static final Logger Log = LoggerFactory.getLogger(SUJArchiveHandlerPlugin.class);
+    private static final Logger Log = LoggerFactory.getLogger(SUJArchiveHandler.class);
 
     /**
      * the hook into the inteceptor chain
@@ -127,7 +127,7 @@ public class SUJArchiveHandlerPlugin implements Plugin, PacketInterceptor {
         }
     }
 
-    public SUJArchiveHandlerPlugin() {
+    public SUJArchiveHandler() {
         interceptorManager = InterceptorManager.getInstance();
         violationNotificationFrom = new JID(XMPPServer.getInstance()
                 .getServerInfo().getXMPPDomain());

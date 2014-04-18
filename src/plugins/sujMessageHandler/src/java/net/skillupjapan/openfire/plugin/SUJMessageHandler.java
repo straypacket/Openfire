@@ -32,99 +32,31 @@ import java.util.regex.Pattern;
 import java.util.Date;
 
 import org.dom4j.Element;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xmpp.packet.Message;
 import org.xmpp.packet.Packet;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 /**
- * Filters message content using regular expressions. If a content mask is
- * provided message content will be altered.
+ * Handling functions
  *
- * @author Conor Hayes
+ * @author Daniel Pereira
  */
 public class SUJMessageHandler {
 
-    private String patterns;
-
-    private Collection<Pattern> compiledPatterns = new ArrayList<Pattern>();
-
-    private String mask;
-
+    private static final Logger Log = LoggerFactory.getLogger(SUJMessageHandler.class);
 
     /**
      * A default instance will allow all message content.
      *
-     * @see #setPatterns(String)
-     * @see #setMask(String)
      */
     public SUJMessageHandler() {
-    }
-
-    /**
-     * Set the patterns to use for searching content.
-     *
-     * @param regExps a comma separated String of regular expressions
-     */
-    public void setPatterns(String patterns) {
-        if (patterns != null) {
-            this.patterns = patterns;
-            String[] data = patterns.split(",");
-
-            compiledPatterns.clear();
-
-            for (int i = 0; i < data.length; i++) {
-                compiledPatterns.add(Pattern.compile(data[i]));
-            }
-        }
-        else {
-            clearPatterns();
-        }
-
-    }
-
-    public String getPatterns() {
-        return this.patterns;
-    }
-
-    /**
-     * Clears all patterns. Calling this method means that all message content
-     * will be allowed.
-     */
-    public void clearPatterns() {
-        patterns = null;
-        compiledPatterns.clear();
-    }
-
-    /**
-     * Set the content replacement mask.
-     *
-     * @param mask the mask to use when replacing content
-     */
-    public void setMask(String mask) {
-        this.mask = mask;
-    }
-
-    /**
-     * @return the current mask or null if none has been set
-     */
-    public String getMask() {
-        return mask;
-    }
-
-    /**
-     * Clears the content mask.
-     *
-     * @see #filter(Message)
-     */
-    public void clearMask() {
-        mask = null;
-    }
-
-
-    /**
-     * @return true if the filter is currently masking content, false otherwise
-     */
-    public boolean isMaskingContent() {
-        return mask != null;
     }
     
     /**
@@ -146,57 +78,51 @@ public class SUJMessageHandler {
     }
 
     /**
-     * Filters packet content.
+     * Makes an HTTP request.
      *
-     * @param packet the packet to filter, its content may be altered if there
-     *            are content matches and a content mask is set
-     * @return true if the msg content matched up, false otherwise
+     * @param none
+     * @return boolean
      */
-    public boolean filter(Packet p) {        
-        return process(p.getElement());
-    }
+    public static boolean googleReq() {
+        String url = "http://www.google.com";
+        String USER_AGENT = "Mozilla/5.0";
+ 
+        try {
+            URL obj = new URL(url);
+            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+     
+            // optional default is GET
+            con.setRequestMethod("GET");
+     
+            //add request header
+            con.setRequestProperty("User-Agent", USER_AGENT);
+     
+            int responseCode = con.getResponseCode();
+            Log.warn("Sending 'GET' request to URL : " + url);
+            Log.warn("Response Code : " + responseCode);
+     
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+     
+            // Do nothing with this, for the moment
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
 
-    private boolean process(Element element) {
-        
-        boolean matched = mask(element);
-        
-        if (!matched || isMaskingContent())
-        {
-            //only check children if no match has yet been found            
-            //or all content must be masked
-            Iterator<Element> iter = element.elementIterator();
-            while (iter.hasNext()) {
-                matched |= process(iter.next());
+            if (responseCode == 200) {
+                return true;
+            }
+            else{
+                return false;
             }
         }
-        
-        return matched;
-    }
-    
-    private boolean mask(Element element) {
-        
-        boolean match = false;
-        
-        String content = element.getText();
-        
-        if ((content != null) && (content.length() > 0)) {
-            
-            for (Pattern pattern : compiledPatterns) {                
-                
-                Matcher matcher = pattern.matcher(content);
-                
-                if (matcher.find()) {
-                    
-                    match = true;
-                    
-                    if (isMaskingContent()) {
-                        content = matcher.replaceAll(mask);
-                        element.setText(content);
-                    }
-                }  
-            }    
+        catch (Exception e) {
+            Log.warn(e.toString());
+
+            return false;
         }
-        
-        return match;
     }
 }

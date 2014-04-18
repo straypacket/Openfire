@@ -14,97 +14,21 @@
     boolean reset = request.getParameter("reset") !=null;
     boolean success = request.getParameter("success") != null;
     
-    //filter options
-    boolean patternsEnabled = ParamUtils.getBooleanParameter(request, "patternsenabled");
-    String patterns =  ParamUtils.getParameter(request, "patterns");
-    String [] filterStatusChecked = ParamUtils.getParameters(request, "filterstatus");
-    boolean filterStatusEnabled = filterStatusChecked.length > 0;
- 
-    //match options
-    boolean allowOnMatch = ParamUtils.getBooleanParameter(request, "allowonmatch");
-    String [] maskChecked = ParamUtils.getParameters(request, "maskenabled");
-	boolean maskEnabled = maskChecked.length > 0;
-   	String mask =  ParamUtils.getParameter(request, "mask");
-
-    //rejection options
-    boolean rejectionNotificationEnabled = ParamUtils.getBooleanParameter(request, "rejectionnotificationenabled");
-    String rejectionMsg = ParamUtils.getParameter(request, "rejectionMsg");
-  
-    //notification options  
-    boolean notificationEnabled = ParamUtils.getBooleanParameter(request, "notificationenabled");
-    String contactName = ParamUtils.getParameter(request, "contactname");
-    List<String> notificationOptions = Arrays.asList(ParamUtils.getParameters(request, "notificationcb"));
-    boolean notificationByIMEnabled = notificationOptions.contains("notificationbyim");
-    boolean notificationByEmailEnabled = notificationOptions.contains("notificationbyemail");
-    boolean includeOriginalEnabled = notificationOptions.contains("notificationincludeoriginal");
+    //handler options
+    String [] registerHandlerChecked = ParamUtils.getParameters(request, "registerhandler");
+    String [] dateHandlerChecked = ParamUtils.getParameters(request, "datehandler");
+    boolean registerHandlerEnabled = registerHandlerChecked.length > 0;
+    boolean dateHandlerEnabled = dateHandlerChecked.length > 0;
     
     //get handle to plugin
 	SUJMessageHandlerPlugin plugin = (SUJMessageHandlerPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("sujmessagehandler");
 
     //input validation
     Map<String, String> errors = new HashMap<String, String>();
-    if (save) {
-    
-        if (patterns == null) {
-            errors.put("missingPatterns", "missingPatterns");
-        } else {
-            String[] data = patterns.split(",");
-            try {
-                for (String aData : data) {
-                    Pattern.compile(aData);
-                }
-            } catch (java.util.regex.PatternSyntaxException e) {
-    			    errors.put("patternSyntaxException", e.getMessage());
-    			}
-    		}
-    		    	
-	    	if (mask == null) {
-	    	    errors.put("missingMask", "missingMask");
-	    	}
-    	
-	    	if (rejectionMsg == null) {
-	    	    errors.put("missingRejectionMsg", "missingRejectionMsg");
-	    	}
-    	
-	    	if (contactName == null) {
-		    errors.put("missingContactName", "missingContactName");
-		} else {
-		    contactName = contactName.trim().toLowerCase();
-		    try  {
-		        User user = UserManager.getInstance().getUser(contactName);
-		        if (notificationByEmailEnabled) {
-		            //verify that the user has an email address
-		            if (user.getEmail() == null) {
-		                errors.put("userEmailNotConfigured", "userEmailNotConfigured");
-		            }
-		            //verify that the email server is configured
-		            if (!JiveGlobals.getBooleanProperty("mail.configured", false)) {
-		                errors.put("mailServerNotConfigured", "mailServerNotConfigured");
-		            }
-		        }
-			} catch (UserNotFoundException unfe) {
-			    errors.put("userNotFound", "userNotFound");
-			}
-		}
-		
-		if (!notificationByIMEnabled && !notificationByEmailEnabled) {
-		    errors.put("notificationFormatNotConfigured", "notificationFormatNotConfigured");
-		}
-	    	       	    	    
+    if (save) {     	    	    
 	    if (errors.size() == 0) {
-		    plugin.setPatternsEnabled(patternsEnabled);
-		    plugin.setPatterns(patterns);
-		    plugin.setFilterStatusEnabled(filterStatusEnabled);
-		    plugin.setAllowOnMatch(allowOnMatch);
-		    plugin.setMaskEnabled(maskEnabled);
-		    plugin.setMask(mask);
-	        plugin.setViolationNotificationEnabled(notificationEnabled);
-	        plugin.setViolationContact(contactName);
-	        plugin.setViolationNotificationByIMEnabled(notificationByIMEnabled);
-	        plugin.setViolationNotificationByEmailEnabled(notificationByEmailEnabled);
-	        plugin.setViolationIncludeOriginalPacketEnabled(includeOriginalEnabled);           
-	        plugin.setRejectionNotificationEnabled(rejectionNotificationEnabled);
-	        plugin.setRejectionMessage(rejectionMsg);            
+		    plugin.setRegistHandlerEnabled(registerHandlerEnabled);
+            plugin.setDateHandlerEnabled(dateHandlerEnabled);
 	        response.sendRedirect("sujmessagehandler-props-edit-form.jsp?success=true");
 	        return;
 	    }
@@ -112,42 +36,23 @@
       plugin.reset();
       response.sendRedirect("sujmessagehandler-props-edit-form.jsp?success=true");
     } else {
-        patterns = plugin.getPatterns();
-        mask = plugin.getMask();   
-        contactName = plugin.getViolationContact();
-        rejectionMsg = plugin.getRejectionMessage();
-    }
-
-    if (errors.size() == 0) {
-        patterns = plugin.getPatterns();
-        mask = plugin.getMask();   
-        contactName = plugin.getViolationContact();
-        rejectionMsg = plugin.getRejectionMessage();
-        notificationByIMEnabled = plugin.isViolationNotificationByIMEnabled();
-        notificationByEmailEnabled = plugin.isViolationNotificationByEmailEnabled();
-        includeOriginalEnabled = plugin.isViolationIncludeOriginalPacketEnabled();
+        //
     }
     
-    patternsEnabled = plugin.isPatternsEnabled();
-    filterStatusEnabled = plugin.isFilterStatusEnabled();
-    allowOnMatch = plugin.isAllowOnMatch();
-    maskEnabled = plugin.isMaskEnabled();
-    notificationEnabled = plugin.isViolationNotificationEnabled();
-    rejectionNotificationEnabled = plugin.isRejectionNotificationEnabled();
+    registerHandlerEnabled = plugin.isRegisterHandlerEnabled();
+    dateHandlerEnabled = plugin.isDateHandlerEnabled();
 
 %>
 
 <html>
     <head>
-        <title>SUJ Message handler</title>
+        <title>SUJ Message Handler</title>
         <meta name="pageID" content="sujmessagehandler-props-edit-form"/>
     </head>
     <body>
 
-Modify as needed, this section was ripped off from the Content Filter plugin.
-
 <p>
-Use the form below to edit content filter settings.<br>
+Use the form below to edit message handler settings.<br>
 </p>
 
 <%  if (success) { %>
@@ -181,55 +86,22 @@ Use the form below to edit content filter settings.<br>
 <form action="sujmessagehandler-props-edit-form.jsp" method="post">
 
 <fieldset>
-    <legend>Filter</legend>
+    <legend>Message Handler</legend>
     <div>
     
     <p>
-    To enable the content filter you need to set up some regular expressions.
+    Choose the handlers you want to enable.
     </p>
     
     <table cellpadding="3" cellspacing="0" border="0" width="100%">
     <tbody>
-    	<tr>
-    	    <td width="1%">
-            <input type="radio" name="patternsenabled" value="false" id="not01"
-             <%= ((patternsEnabled) ? "" : "checked") %>>
-        </td>
-        <td width="99%">
-            <label for="not01"><b>Disabled</b></label> - Packets will not be filtered.
-        </td>
-    </tr>
-    <tr>
-        <td width="1%">
-            <input type="radio" name="patternsenabled" value="true" id="not02"
-             <%= ((patternsEnabled) ? "checked" : "") %>>
-        </td>
-        <td width="99%">
-            <label for="not02"><b>Enabled</b></label> - Packets will be filtered.
-        </td>
-    </tr>
-    	<tr>
-        	<td>&nbsp;</td>
-        	<td align="left">Patterns:&nbsp;</td>
+	<tr>
+		<td>&nbsp;</td>
+        <td><input type="checkbox" name="registerhandler" value="registerhandler" <%= registerHandlerEnabled ? "checked" : "" %>/>Handles special fields on user registration packets.</td>
     </tr>
     <tr>
         <td>&nbsp;</td>
-	    <td>
-	        <textarea rows="10" cols="100" name="patterns"><%= (patterns != null ? patterns : "") %></textarea>
-	        	<% if (errors.containsKey("missingPatterns")) { %>
-	            <span class="jive-error-text">
-	                <br>Please enter comma separated, regular expressions.
-	            </span>
-	            <% } else if (errors.containsKey("patternSyntaxException")) { %>
-	            <span class="jive-error-text">
-	                <br>Invalid regular expression: <%= errors.get("patternSyntaxException") %>. Please try again.
-	            </span>
-	            <% } %>
-	    </td>
-	</tr>
-	<tr>
-		<td>&nbsp;</td>
-        <td><input type="checkbox" name="filterstatus" value="filterstatus" <%= filterStatusEnabled ? "checked" : "" %>/>Filter users presence status.</td>
+        <td><input type="checkbox" name="datehandler" value="datehandler" <%= dateHandlerEnabled ? "checked" : "" %>/>Adds date fields in user packets.</td>
 	</tr>
     </tbody>
     </table>
@@ -239,170 +111,13 @@ Use the form below to edit content filter settings.<br>
 <br><br>
 
 <fieldset>
-    <legend>On Content Match</legend>
+    <legend>Other matchers</legend>
     <div>
     
     <p>
-    Configure this feature to reject or allow (and optionally mask) packet content when there is a match.
+    Get your ass to work and create more functionalities.
     </p>
     
-    <table cellpadding="3" cellspacing="0" border="0" width="100%">
-    <tbody>
-    	<tr>
-            <td width="1%">
-            <input type="radio" name="allowonmatch" value="false" id="not03"
-             <%= ((allowOnMatch) ? "" : "checked") %>>
-            </td>
-            <td width="99%">
-                <label for="not01"><b>Reject</b></label> - Packets will be rejected.
-            </td>
-        </tr>
-        <tr>
-            <td width="1%">
-            <input type="radio" name="allowonmatch" value="true" id="not04"
-             <%= ((allowOnMatch) ? "checked" : "") %>>
-            </td>
-            <td width="99%">
-                <label for="not02"><b>Allow</b></label> - Packets will be allowed.
-            </td>
-        </tr>
-        <tr>
-        	<td>&nbsp;</td>
-	        <td align="left">Mask:&nbsp;
-	        <input type="text" size="100" maxlength="100" name="mask" 
-	        	value="<%= (mask != null ? mask : "") %>">
-	        	<% if (errors.containsKey("missingMask")) { %>
-	            <span class="jive-error-text">
-	                <br>Please enter a mask.
-	            </span>
-	            <% } %>
-	        </td>
-	    </tr>
-	    <tr>
-		<td>&nbsp;</td>
-        <td><input type="checkbox" name="maskenabled" value="maskenabled" <%= maskEnabled ? "checked" : "" %>/>Enable mask.</td>
-	</tr>
-    </tbody>
-    </table>
-    </div>
-</fieldset>
-
-<br><br>
-
-<fieldset>
-    <legend>Rejection Notification</legend>
-    <div>
-    
-    <p>
-    Enable this feature to have the sender notified whenever a packet is rejected.
-    NB: This feature is only operational if "On Content Match" is set to reject packets.
-    </p>
-    
-    <table cellpadding="3" cellspacing="0" border="0" width="100%">
-    <tbody>
-    	<tr>
-            <td width="1%">
-            <input type="radio" name="rejectionnotificationenabled" value="false" id="not05"
-             <%= ((rejectionNotificationEnabled) ? "" : "checked") %>>
-            </td>
-            <td width="99%">
-                <label for="not01"><b>Disabled</b></label> - Notifications will not be sent out.
-            </td>
-        </tr>
-        <tr>
-            <td width="1%">
-            <input type="radio" name="rejectionnotificationenabled" value="true" id="not06"
-             <%= ((rejectionNotificationEnabled) ? "checked" : "") %>>
-            </td>
-            <td width="99%">
-                <label for="not02"><b>Enabled</b></label> - Notifications will be sent out.
-            </td>
-        </tr>
-         <tr>
-        	<td>&nbsp;</td>
-	        <td align="left">Rejection message:&nbsp;
-	        <input type="text" size="100" maxlength="100" name="rejectionMsg" 
-	        	value="<%= (rejectionMsg != null ? rejectionMsg : "") %>">
-	        	<% if (errors.containsKey("missingRejectionMsg")) { %>
-	            <span class="jive-error-text">
-	                <br>Please enter a rejection message.
-	            </span>
-	            <% } %>
-	        </td>
-	    </tr>
-    </tbody>
-    </table>
-    </div>
-</fieldset>
-
-<br><br>
-
-<fieldset>
-    <legend>Content Match Notification</legend>
-    <div>
-    
-    <p>
-    Enable this feature to have the contact person notified whenever there is a content match.
-    </p>
-    
-    <table cellpadding="3" cellspacing="0" border="0" width="100%">
-    <tbody>
-    	<tr>
-            <td width="1%">
-            <input type="radio" name="notificationenabled" value="false" id="not07"
-             <%= ((notificationEnabled) ? "" : "checked") %>>
-            </td>
-            <td width="99%">
-                <label for="not01"><b>Disabled</b></label> - Notifications will not be sent out.
-            </td>
-        </tr>
-        <tr>
-            <td width="1%">
-            <input type="radio" name="notificationenabled" value="true" id="not08"
-             <%= ((notificationEnabled) ? "checked" : "") %>>
-            </td>
-            <td width="99%">
-                <label for="not02"><b>Enabled</b></label> - Notifications will be sent out.
-            </td>
-        </tr>        
-        <tr>
-        	    <td>&nbsp;</td>
-	        <td align="left">Username:&nbsp
-                <input type="text" size="20" maxlength="100" name="contactname" value="<%= (contactName != null ? contactName : "") %>">@<%= XMPPServer.getInstance().getServerInfo().getXMPPDomain() %>
-		        <% if (errors.containsKey("missingContactName")) { %>
-		            <span class="jive-error-text">
-		            <br>Please enter a username.
-		            </span>
-		        <% } else if (errors.containsKey("userNotFound")) { %>
-		            <span class="jive-error-text">
-		            <br>Could not find user. Please try again.
-		            </span>
-		        <% } %>
-	        </td>
-	    </tr>
-	    <tr>
-	        <td>&nbsp;</td>
-	        <td>
-                <input type="checkbox" name="notificationcb" value="notificationbyim" <%= notificationByIMEnabled ? "checked" : "" %>/>Notify by IM.
-                <input type="checkbox" name="notificationcb" value="notificationbyemail" <%= notificationByEmailEnabled ? "checked" : "" %>/>Notify by Email.
-	            <input type="checkbox" name="notificationcb" value="notificationincludeoriginal" <%= includeOriginalEnabled ? "checked" : "" %>/>Include original packet.
-	            <% if (errors.containsKey("mailServerNotConfigured")) { %>
-		            <span class="jive-error-text">
-		            <br>Error, sending an email will fail because the mail server is not setup. Please go to the <a href="/system-email.jsp">mail settings page</a> and set the mail host.
-		            </span>
-		        <% } else if (errors.containsKey("userEmailNotConfigured")) { %>
-		            <span class="jive-error-text">
-		            <br>Please configure <a href="/user-properties.jsp?username=<%= contactName %>"><%= contactName %>'s</a> email address.
-		            </span>
-		        <% } else if (errors.containsKey("notificationFormatNotConfigured")) { %>
-		            <span class="jive-error-text">
-		            <br>Users must be notified by IM and/or Email.
-		            </span>
-		        <% } %>
-	        </td>
-	    </tr>
-    </tbody>
-    </table>
     </div>
 </fieldset>
 
