@@ -152,7 +152,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             boolean processed) throws PacketRejectedException {
 
         /**
-         * Adds date to all normal conversation packets, in the same fashion
+         * Adds date to all conversation packets, in the same fashion
          * as an offline packet, as described below.
          *
          * Returned message:
@@ -296,7 +296,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         return  dateHandlerEnabled
                 && !processed
                 && read
-                && (packet instanceof Message || packet instanceof Presence);
+                && (packet instanceof Message);
     }
 
     private boolean isValidMsgQueryPacket(Packet packet, boolean read, boolean processed) {
