@@ -22,6 +22,7 @@ package net.skillupjapan.openfire.plugin;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.List;
 
 import org.jivesoftware.openfire.MessageRouter;
 import org.jivesoftware.openfire.XMPPServer;
@@ -202,28 +203,40 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         * </iq>
         */
         if (isValidMsgQueryPacket(packet, read, processed)) {
-            String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
-            String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
-            IQ.Type type = ((IQ) packet).getType();
+            Element child = ((IQ) packet).getChildElement();
+            if (child != null) {
+                String uri = ((Element) child).getNamespaceURI().toString();
+                String qualifiedname = ((Element) child).getQualifiedName().toString();
+                IQ.Type type = ((IQ) packet).getType();
 
-            if (uri.equals("xmpp:join:msgq") && qualifiedname.equals("query") && type.equals(IQ.Type.valueOf("get"))) {
-                //Get the fields we are interested in (all the "room" requests)
-                Iterator fieldElems = ((IQ) packet).getChildElement().element("room").elementIterator();
-                Int rescount = 0;
-                // Create reply
-                IQ reply = packet.createResultIQ();
+                if (uri.equals("xmpp:join:msgq") && qualifiedname.equals("query") && type.equals(IQ.Type.valueOf("get"))) {
+                    //Get the fields we are interested in (all the "room" requests)
+                    Log.warn("Packet: " + packet.toString());
+                    List children = ((IQ) packet).getChildElement().elements("room");
+                    if (!children.isEmpty()) {
+                        Iterator fieldElems = children.iterator();
+                        int rescount = 0;
+                        // Create reply
+                        //IQ reply = packet.createResultIQ();
 
-                while (fieldElems.hasNext()) {
-                    Element cur = (Element) fieldElems.next();
-                    String qroom = cur.attribute("room_jid").getValue();
-                    String qdate = cur.attribute("since").getValue();
-                    rescount = sujMessageHandler.getArchivedMessageCount(qroom, qdate);
+                        while (fieldElems.hasNext()) {
+                            Element cur = (Element) fieldElems.next();
+                            String qroom = cur.attribute("room_jid").getValue();
+                            String qdate = cur.attribute("since").getValue();
+                            rescount = sujMessageHandler.getArchivedMessageCount(qroom, qdate);
 
-                    Log.warn("I got the query token! Search for messages in " + qroom + " older than " + qdate + ": " + rescount + " messages ");
+                            if (Log.isDebugEnabled()) {
+                                Log.warn("I got the query token! Search for messages in " + qroom + " older than " + qdate + ": " + rescount + " messages ");
+                            }
+                        }
+
+                        // Create reply
+                        //IQ reply = packet.createResultIQ();
+                    }
+                    else {
+                        Log.warn("Empty MsgQueryPacket!");
+                    }
                 }
-
-                // Create reply
-                //IQ reply = packet.createResultIQ();
             }
         }
 

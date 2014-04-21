@@ -56,8 +56,7 @@ public class SUJMessageHandler {
 
     private static final Logger Log = LoggerFactory.getLogger(SUJMessageHandler.class);
 
-    //private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive";
-    private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive WHERE conversationID=(SELECT conversationID FROM ofConversation WHERE room=?) AND sentDate>=?";
+    private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive INNER JOIN (SELECT conversationID FROM ofConversation WHERE room=?) as t1 ON ofMessageArchive.conversationID=t1.conversationID AND sentDate>=?";
 
     /**
      * A default instance will allow all message content.
@@ -100,7 +99,12 @@ public class SUJMessageHandler {
             con = DbConnectionManager.getConnection();
             pstmt = con.prepareStatement(MESSAGE_COUNT);
             pstmt.setString(1, chatgroup);
-            pstmt.setLong(2, rd.parseString(date).getTime());
+            if (date.length() == 0) {
+                pstmt.setLong(2, 0);
+            }
+            else{
+                pstmt.setLong(2, rd.parseString(date).getTime());
+            }
             rs = pstmt.executeQuery();
             if (rs.next()) {
                 messageCount = rs.getInt(1);
