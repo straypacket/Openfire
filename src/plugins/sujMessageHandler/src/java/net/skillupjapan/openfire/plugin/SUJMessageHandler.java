@@ -23,12 +23,16 @@ package net.skillupjapan.openfire.plugin;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.util.StringUtils;
 import org.jivesoftware.util.XMPPDateTimeFormat;
+import org.jivesoftware.database.DbConnectionManager;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.Date;
 
 import org.dom4j.Element;
@@ -51,6 +55,9 @@ import java.net.URL;
 public class SUJMessageHandler {
 
     private static final Logger Log = LoggerFactory.getLogger(SUJMessageHandler.class);
+
+    //private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive";
+    private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive WHERE conversationID=(SELECT conversationID FROM ofConversation WHERE room=?) AND sentDate>=?";
 
     /**
      * A default instance will allow all message content.
@@ -75,6 +82,37 @@ public class SUJMessageHandler {
         delay.addAttribute("stamp", XMPPDateTimeFormat.format(creationDate));
 
         return (Packet) message;
+    }
+
+    /**
+     * Returns the total number of messages that have been archived to the database.
+     * 
+     * @return the total number of archived messages.
+     */
+    public int getArchivedMessageCount(String chatgroup, String date) {
+        int messageCount = 0;
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        XMPPDateTimeFormat rd = new XMPPDateTimeFormat();
+
+        try {
+            con = DbConnectionManager.getConnection();
+            pstmt = con.prepareStatement(MESSAGE_COUNT);
+            pstmt.setString(1, chatgroup);
+            pstmt.setLong(2, rd.parseString(date).getTime());
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                messageCount = rs.getInt(1);
+            }
+        } catch (SQLException sqle) {
+            Log.error(sqle.getMessage(), sqle);
+        } catch (ParseException pd) {
+            Log.error("Error parsing date!");
+        } finally {
+            DbConnectionManager.closeConnection(rs, pstmt, con);
+        }
+        return messageCount;
     }
 
     /**

@@ -34,6 +34,7 @@ import org.jivesoftware.openfire.session.Session;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.util.JiveGlobals;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xmpp.packet.JID;
@@ -41,8 +42,6 @@ import org.xmpp.packet.IQ;
 import org.xmpp.packet.Message;
 import org.xmpp.packet.Packet;
 import org.xmpp.packet.Presence;
-
-import org.jivesoftware.database.DbConnectionManager;
 
 import org.dom4j.Element;
 import org.dom4j.Namespace;
@@ -153,8 +152,18 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             boolean processed) throws PacketRejectedException {
 
         /**
-         * Adds date to normal conversation packets, in the same fashion
-         * as an offline packet
+         * Adds date to all normal conversation packets, in the same fashion
+         * as an offline packet, as described below.
+         *
+         * Returned message:
+         * <message from='romeo@montague.net/orchard' to='juliet@capulet.com' type='chat'>
+         *    <body>
+         *        O blessed, blessed night! I am afeard.
+         *        Being in night, all this is but a dream,
+         *        Too flattering-sweet to be substantial.
+         *    </body>
+         *    <delay xmlns='urn:xmpp:delay' from='capulet.com' stamp='2002-09-10T23:08:25Z'/>
+         * </message>
          */
         if (isValidAddDataPacket(packet, read, processed)) {
             Packet original = packet;
@@ -170,39 +179,59 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         }
         
         /**
-         * 
-         */
+        * An IQ packet can send a query for the count of messages for the given rooms
+        *
+        * Example query:
+        * <iq type='get' id='xdfw-1'>
+        *   <query xmlns='xmpp:join:msgq'>
+        *      <room room_jid='rm_015551123@conference.mediline-jabber01' since='CCYY-MM-DDThh:mm:ss[.sss]TZD' />
+        *      <room room_jid='rm_515156520@conference.mediline-jabber01' since='2014-04-11T09:10:59.303+0000' />
+        *      <room room_jid='pc_845169551@conference.mediline-jabber01' since='1970-01-01T00:00:00Z' />
+        *      ...
+        *   </query>
+        * </iq>
+        *
+        * Replied query:
+        * <iq type='result' id='xdfw-1'>
+        *    <query xmlns='xmpp:join:msgq'>
+        *       <room room_jid='rm_015551123@conference.mediline-jabber01'><msg_count>3</msg_count></room>
+        *       <room room_jid='rm_515156520@conference.mediline-jabber01'><msg_count>0</msg_count></room>
+        *       <room room_jid='pc_845169551@conference.mediline-jabber01'><msg_count>10</msg_count></room>
+        *       ...
+        *    </query>
+        * </iq>
+        */
         if (isValidMsgQueryPacket(packet, read, processed)) {
-            /*
-            IQ original = packet;
+            String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
+            String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
+            IQ.Type type = ((IQ) packet).getType();
 
-            Log.error("SUJ Message Handler: MSG Query packet"
-                        + original.toString());
-            Log.error("Extension:"
-                        + original.getExtension());
+            if (uri.equals("xmpp:join:msgq") && qualifiedname.equals("query") && type.equals(IQ.Type.valueOf("get"))) {
+                //Get the fields we are interested in (all the "room" requests)
+                Iterator fieldElems = ((IQ) packet).getChildElement().element("room").elementIterator();
+                Int rescount = 0;
+                // Create reply
+                IQ reply = packet.createResultIQ();
 
-            PacketExtension pkt_ex = original.getExtension();
-            boolean res = original.deleteExtension();
+                while (fieldElems.hasNext()) {
+                    Element cur = (Element) fieldElems.next();
+                    String qroom = cur.attribute("room_jid").getValue();
+                    String qdate = cur.attribute("since").getValue();
+                    rescount = sujMessageHandler.getArchivedMessageCount(qroom, qdate);
 
-            // Same?
-            Element elem = pkt_ex.getElement();
-            Element child_elem = original.getChildElement();
+                    Log.warn("I got the query token! Search for messages in " + qroom + " older than " + qdate + ": " + rescount + " messages ");
+                }
 
-            */
-
-
-            // Create reply
-            //IQ reply = original.createResultIQ();
-
+                // Create reply
+                //IQ reply = packet.createResultIQ();
+            }
         }
 
         /**
-        * Register intention
-        * <iq type="get" id="purple343f3f95" from="mediline-jabber01/68b64d0a">
-        *   <query xmlns="jabber:iq:register"/>
-        * </iq>
-        * 
-        * Registration
+        * Hijack the registration request and parse information related to the JOIN service
+        * This information is sent in the body of the register query.
+        *
+        * Example registration packet:
         * <iq type="set" id="purple343f3f96" from="mediline-jabber01/68b64d0a">
         *   <query xmlns="jabber:iq:register">
         *     <x xmlns="jabber:x:data" type="submit">
@@ -272,7 +301,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
     private boolean isValidMsgQueryPacket(Packet packet, boolean read, boolean processed) {
         return  !processed
-                && read;
+                && read
+                && packet instanceof IQ;
                 //&& packet instanceof IQ 
                 //&& packet.getType() == "get" 
                 //&& packet.isRequest();
