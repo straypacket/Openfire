@@ -68,6 +68,86 @@ Reply should be:
 
 You can use any other tool, such as curl.
 
+API Requests
+------------
+
+API calls implemented, according to functionality.
+
+Authentication parameters:
+
+- secret=STRING [REQUIRED]
+
+User management parameters:
+
+- type=add
+
+- type=delete
+
+- type=update
+
+- type=enable
+
+- type=disable
+
+User properties:
+
+- username=STRING [REQUIRED for user operations]
+
+- password=STRING [REQUIRED only for user creation]
+
+- name=STRING
+
+- groups=STRING
+
+- email=STRING
+
+
+Roster management parameters:
+
+- type=add_roster
+
+- type=update_roster
+
+- type=delete_roster
+
+- item_jid=STRING|JID [REQUIRED for roster operations]
+
+
+**API calls _not yet_ implemented:**
+
+Chat management parameters:
+
+- type=create_chat
+
+- type=update_chat
+
+- type=delete_chat
+
+- type=adduser_chat
+
+- type=deleteuser_chat
+
+- type=getuserlist_chat
+
+- group_jid=STRING|JID [REQUIRED for chats]
+
+
+Chat properties:
+
+- topic=STRING
+
+- pass=STRING
+
+- maxusers=INTEGER
+
+- public=TRUE|FALSE
+
+- moderated=TRUE|FALSE
+
+- members_only=TRUE|FALSE
+
+
+
 SUJ Message Handler
 -------------------
 
