@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.jivesoftware.openfire.MessageRouter;
+import org.jivesoftware.openfire.IQRouter;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.container.Plugin;
 import org.jivesoftware.openfire.container.PluginManager;
@@ -44,6 +45,7 @@ import org.xmpp.packet.Message;
 import org.xmpp.packet.Packet;
 import org.xmpp.packet.Presence;
 
+import org.dom4j.Text;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 
@@ -72,9 +74,14 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     private InterceptorManager interceptorManager;
 
     /**
-     * used to send violation notifications
+     * used to send messages
      */
     private MessageRouter messageRouter;
+
+    /**
+     * used to send iq packets
+     */
+    private IQRouter iqRouter;
 
     /**
      * delegate that does the real work of this plugin
@@ -96,6 +103,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         interceptorManager = InterceptorManager.getInstance();
 
         messageRouter = XMPPServer.getInstance().getMessageRouter();
+        iqRouter = XMPPServer.getInstance().getIQRouter();
     }
 
     /**
@@ -195,9 +203,12 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         * Replied query:
         * <iq type='result' id='xdfw-1'>
         *    <query xmlns='xmpp:join:msgq'>
-        *       <room room_jid='rm_015551123@conference.mediline-jabber01'><msg_count>3</msg_count></room>
-        *       <room room_jid='rm_515156520@conference.mediline-jabber01'><msg_count>0</msg_count></room>
-        *       <room room_jid='pc_845169551@conference.mediline-jabber01'><msg_count>10</msg_count></room>
+        *       <room room_jid='rm_015551123@conference.mediline-jabber01'>
+        *           <msg_count>3</msg_count>
+        *       </room>
+        *       <room room_jid='rm_515156520@conference.mediline-jabber01'>
+        *           <msg_count>0</msg_count>
+        *       </room>
         *       ...
         *    </query>
         * </iq>
@@ -211,13 +222,14 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
                 if (uri.equals("xmpp:join:msgq") && qualifiedname.equals("query") && type.equals(IQ.Type.valueOf("get"))) {
                     //Get the fields we are interested in (all the "room" requests)
-                    Log.warn("Packet: " + packet.toString());
                     List children = ((IQ) packet).getChildElement().elements("room");
                     if (!children.isEmpty()) {
                         Iterator fieldElems = children.iterator();
                         int rescount = 0;
+
                         // Create reply
-                        //IQ reply = packet.createResultIQ();
+                        IQ reply = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
+                        reply.setChildElement("query", "xmpp:join:msgq");
 
                         while (fieldElems.hasNext()) {
                             Element cur = (Element) fieldElems.next();
@@ -225,13 +237,27 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                             String qdate = cur.attribute("since").getValue();
                             rescount = sujMessageHandler.getArchivedMessageCount(qroom, qdate);
 
+                            // Choo choo, makes the train
+                            ((IQ) reply).getChildElement().addElement("room").addAttribute("room_jid",qroom).addElement("msg_count").addText(Integer.toString(rescount));
+
                             if (Log.isDebugEnabled()) {
                                 Log.warn("I got the query token! Search for messages in " + qroom + " older than " + qdate + ": " + rescount + " messages ");
                             }
                         }
 
-                        // Create reply
-                        //IQ reply = packet.createResultIQ();
+                        if (Log.isDebugEnabled()) {
+                            Log.warn("Sending IQ reply: "
+                                + reply.toString());
+                        }
+                        // Send packet
+                        try {
+                            iqRouter.route(reply);
+                        }
+                        catch (Exception rf) {
+                            Log.error ("Routing failed for IQ packet: " 
+                                + reply.toString());
+                        }
+
                     }
                     else {
                         Log.warn("Empty MsgQueryPacket!");
