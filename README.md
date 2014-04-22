@@ -71,7 +71,7 @@ You can use any other tool, such as curl.
 API Requests
 ------------
 
-API calls implemented, according to functionality.
+API calls implemented, according to functionality. Take a look at the Usage example, these parameter calls should replace those in above the `--post-data` example.
 
 Authentication parameters:
 
