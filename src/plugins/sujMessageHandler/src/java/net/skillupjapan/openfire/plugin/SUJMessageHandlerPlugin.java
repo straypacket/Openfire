@@ -87,6 +87,11 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     public static final String OUT_OF_MUC_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.outofmuc.handler.enabled";
 
     /**
+     * The expected value is a boolean
+     */
+    public static final String OFFLINE_MUC_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.offlinemuc.handler.enabled";
+
+    /**
      * the hook into the inteceptor chain
      */
     private InterceptorManager interceptorManager;
@@ -147,6 +152,11 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     private boolean outOfMucHandlerEnabled;
 
     /**
+     * flag if MUC messages should be handled.
+     */
+    private boolean offlineMucHandlerEnabled;
+
+    /**
      * Hash with all the rooms
      */
     private Map<JID, MUCRoom> rooms = new ConcurrentHashMap<JID, MUCRoom>();
@@ -174,6 +184,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         setDateHandlerEnabled(false);
         setUnreadHandlerEnabled(false);
         setOutOfMUCHandlerEnabled(false);
+        setOfflineMUCHandlerEnabled(false);
     }
 
     public boolean isRegisterHandlerEnabled() {
@@ -190,6 +201,10 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
     public boolean isOutOfMUCHandlerEnabled() {
         return outOfMucHandlerEnabled;
+    }
+
+    public boolean isOfflineMUCHandlerEnabled() {
+        return offlineMucHandlerEnabled;
     }
 
     public void setRegistHandlerEnabled(boolean enabled) {
@@ -216,6 +231,12 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 enabled ? "true" : "false");
     }
 
+    public void setOfflineMUCHandlerEnabled(boolean enabled) {
+        offlineMucHandlerEnabled = enabled;
+        JiveGlobals.setProperty(OFFLINE_MUC_HANDLER_ENABLED_PROPERTY,
+                enabled ? "true" : "false");
+    }
+
     public void initializePlugin(PluginManager pManager, File pluginDirectory) {
         // configure this plugin
         initHandlers();
@@ -234,6 +255,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 UNREAD_HANDLER_ENABLED_PROPERTY, false); 
         outOfMucHandlerEnabled = JiveGlobals.getBooleanProperty(
                 OUT_OF_MUC_HANDLER_ENABLED_PROPERTY, false); 
+        offlineMucHandlerEnabled = JiveGlobals.getBooleanProperty(
+                OFFLINE_MUC_HANDLER_ENABLED_PROPERTY, false); 
     }
 
     /**
@@ -434,9 +457,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         }
 
         /**
-        * Hijack the MUC requests and check if notifications should be sent when:
-        * - user is online but there's ongoing activity on a MUC the user belongs to (live notifications/IQ messages)
-        * - user if offline and there are unread messages (timed/delayed notifications)
+        * Hijack the MUC requests and check if messages should be forwarded when the user is online 
+        * but there's ongoing activity on a MUC the user belongs to (live notifications)
         *
         * Example MUC activity packet:
         * <message content="text" to="gc_930f3e070d7@conference.mediline" type="groupchat" from="test2@mediline/7e3">
@@ -480,6 +502,20 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                     }
                 }
             }
+        }
+
+        /**
+        * Hijack the MUC requests and check if push notifications should be sent when the user if offline
+        * and there are unread messages (timed/delayed notifications)
+        *
+        * Example MUC activity packet:
+        * <message content="text" to="gc_930f3e070d7@conference.mediline" type="groupchat" from="test2@mediline/7e3">
+        *   <body>Message</body>
+        *   <delay xmlns="urn:xmpp:delay" from="test2@mediline/7e3" stamp="2010-02-12T13:36:22.715Z"/>
+        * </message>
+        */
+        if (isValidOutOfMUCPacket(packet, read, processed)){
+
         }
     }
 
@@ -550,4 +586,13 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 //&& packet.isRequest();
     }
 
+    private boolean isValidOfflineMUCPacket(Packet packet, boolean read, boolean processed) {
+        return  offlineMucHandlerEnabled
+                && !processed
+                && read
+                && packet instanceof Message
+                && ((Message)packet).getType().equals(Message.Type.groupchat);
+                //&& packet.Type == IQ.Type.get;
+                //&& packet.isRequest();
+    }
 }

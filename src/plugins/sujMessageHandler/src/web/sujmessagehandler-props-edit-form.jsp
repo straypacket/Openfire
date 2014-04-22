@@ -19,10 +19,12 @@
     String [] dateHandlerChecked = ParamUtils.getParameters(request, "datehandler");
     String [] unreadHandlerChecked = ParamUtils.getParameters(request, "unreadhandler");
     String [] outOfMUCHandlerChecked = ParamUtils.getParameters(request, "outofmuchandler");
+    String [] offlineMUCHandlerChecked = ParamUtils.getParameters(request, "offlinemuchandler");
     boolean registerHandlerEnabled = registerHandlerChecked.length > 0;
     boolean dateHandlerEnabled = dateHandlerChecked.length > 0;
     boolean unreadHandlerEnabled = unreadHandlerChecked.length > 0;
     boolean outOfMUCHandlerEnabled = outOfMUCHandlerChecked.length > 0;
+    boolean offlineMUCHandlerEnabled = offlineMUCHandlerChecked.length > 0;
     
     //get handle to plugin
 	SUJMessageHandlerPlugin plugin = (SUJMessageHandlerPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("sujmessagehandler");
@@ -35,6 +37,7 @@
             plugin.setDateHandlerEnabled(dateHandlerEnabled);
             plugin.setUnreadHandlerEnabled(unreadHandlerEnabled);
             plugin.setOutOfMUCHandlerEnabled(outOfMUCHandlerEnabled);
+            plugin.setOfflineMUCHandlerEnabled(offlineMUCHandlerEnabled);
 	        response.sendRedirect("sujmessagehandler-props-edit-form.jsp?success=true");
 	        return;
 	    }
@@ -49,6 +52,7 @@
     dateHandlerEnabled = plugin.isDateHandlerEnabled();
     unreadHandlerEnabled = plugin.isUnreadHandlerEnabled();
     outOfMUCHandlerEnabled = plugin.isOutOfMUCHandlerEnabled();
+    offlineMUCHandlerEnabled = plugin.isOfflineMUCHandlerEnabled();
 
 %>
 
@@ -114,6 +118,10 @@ Use the form below to edit message handler settings.<br>
     <tr>
         <td>&nbsp;</td>
         <td><input type="checkbox" name="outofmuchandler" value="outofmuchandler" <%= outOfMUCHandlerEnabled ? "checked" : "" %>/>Handles forwarding of messages for out-of-MUC users.</td>
+    </tr>
+    <tr>
+        <td>&nbsp;</td>
+        <td><input type="checkbox" name="offlinemuchandler" value="offlinemuchandler" <%= offlineMUCHandlerEnabled ? "checked" : "" %>/>Handles timed notificartions to offline users users.</td>
     </tr>
     <tr>
         <td>&nbsp;</td>
