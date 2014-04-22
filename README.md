@@ -55,7 +55,7 @@ For obvious safety reasons, we only support POST requests.
 
 **[EXAMPLE]** Add user with wget:
 
-	wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=add&secret=secretkey&username=kafka&password=drowssap&name=franz&email=franz@kafka.com" "https://example.com:9091/plugins/suJoin/sujoin
+	wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=add&secret=secretkey&username=kafka&password=drowssap&name=franz&email=franz@kafka.com" "https://example.com:9091/plugins/suJoin/sujoin"
 
 Reply should be:
 
