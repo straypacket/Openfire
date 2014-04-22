@@ -23,16 +23,25 @@ package net.skillupjapan.openfire.plugin;
 import java.io.File;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jivesoftware.openfire.MessageRouter;
 import org.jivesoftware.openfire.IQRouter;
 import org.jivesoftware.openfire.XMPPServer;
 import org.jivesoftware.openfire.container.Plugin;
 import org.jivesoftware.openfire.container.PluginManager;
+import org.jivesoftware.openfire.container.PluginManager;
 import org.jivesoftware.openfire.interceptor.InterceptorManager;
 import org.jivesoftware.openfire.interceptor.PacketInterceptor;
 import org.jivesoftware.openfire.interceptor.PacketRejectedException;
+import org.jivesoftware.openfire.muc.MultiUserChatManager;
+import org.jivesoftware.openfire.muc.MultiUserChatService;
+import org.jivesoftware.openfire.muc.MUCRoom;
+import org.jivesoftware.openfire.muc.MUCRole;
 import org.jivesoftware.openfire.session.Session;
+import org.jivesoftware.openfire.PresenceManager;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.util.JiveGlobals;
@@ -45,7 +54,6 @@ import org.xmpp.packet.Message;
 import org.xmpp.packet.Packet;
 import org.xmpp.packet.Presence;
 
-import org.dom4j.Text;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 
@@ -69,9 +77,39 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     public static final String DATE_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.date.handler.enabled";
 
     /**
+     * The expected value is a boolean
+     */
+    public static final String UNREAD_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.unread.handler.enabled";
+
+    /**
+     * The expected value is a boolean
+     */
+    public static final String MUC_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.muc.handler.enabled";
+
+    /**
      * the hook into the inteceptor chain
      */
     private InterceptorManager interceptorManager;
+
+    /**
+     * the hook used for the group manager
+     */
+    private MultiUserChatManager mucManager;
+
+    /**
+     * the hook used for the presence manager
+     */
+    private PresenceManager presenceManager;
+
+    /**
+     * the hook used for the user manager
+     */
+    private UserManager userManager;
+
+    /**
+     * the hook used to handle groups
+     */
+    private  MultiUserChatService mucService;
 
     /**
      * used to send messages
@@ -98,12 +136,34 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
      */
     private boolean dateHandlerEnabled;
 
+    /**
+     * flag if Unread queries should be handled.
+     */
+    private boolean unreadHandlerEnabled;
+
+    /**
+     * flag if MUC messages should be handled.
+     */
+    private boolean mucHandlerEnabled;
+
+    /**
+     * Hash with all the rooms
+     */
+    private Map<JID, MUCRoom> rooms = new ConcurrentHashMap<JID, MUCRoom>();
+
     public SUJMessageHandlerPlugin() {
         sujMessageHandler = new SUJMessageHandler();
         interceptorManager = InterceptorManager.getInstance();
+        mucManager = XMPPServer.getInstance().getMultiUserChatManager();
+        presenceManager = XMPPServer.getInstance().getPresenceManager();
+        userManager = XMPPServer.getInstance().getUserManager();
 
         messageRouter = XMPPServer.getInstance().getMessageRouter();
         iqRouter = XMPPServer.getInstance().getIQRouter();
+        mucService = mucManager.getMultiUserChatService("conference");
+
+        // Initialy populate the hash of rooms in the server
+        makeHashByJID();
     }
 
     /**
@@ -111,6 +171,9 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
      */
     public void reset() {     
         setRegistHandlerEnabled(false);
+        setDateHandlerEnabled(false);
+        setUnreadHandlerEnabled(false);
+        setMUCHandlerEnabled(false);
     }
 
     public boolean isRegisterHandlerEnabled() {
@@ -119,6 +182,14 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
     public boolean isDateHandlerEnabled() {
         return dateHandlerEnabled;
+    }
+
+    public boolean isUnreadHandlerEnabled() {
+        return unreadHandlerEnabled;
+    }
+
+    public boolean isMUCHandlerEnabled() {
+        return mucHandlerEnabled;
     }
 
     public void setRegistHandlerEnabled(boolean enabled) {
@@ -130,6 +201,18 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     public void setDateHandlerEnabled(boolean enabled) {
         dateHandlerEnabled = enabled;
         JiveGlobals.setProperty(DATE_HANDLER_ENABLED_PROPERTY,
+                enabled ? "true" : "false");
+    }
+
+    public void setUnreadHandlerEnabled(boolean enabled) {
+        unreadHandlerEnabled = enabled;
+        JiveGlobals.setProperty(UNREAD_HANDLER_ENABLED_PROPERTY,
+                enabled ? "true" : "false");
+    }
+
+    public void setMUCHandlerEnabled(boolean enabled) {
+        mucHandlerEnabled = enabled;
+        JiveGlobals.setProperty(MUC_HANDLER_ENABLED_PROPERTY,
                 enabled ? "true" : "false");
     }
 
@@ -146,7 +229,11 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         registerHandlerEnabled = JiveGlobals.getBooleanProperty(
                 REGISTER_HANDLER_ENABLED_PROPERTY, false);   
         dateHandlerEnabled = JiveGlobals.getBooleanProperty(
-                DATE_HANDLER_ENABLED_PROPERTY, false); 
+                DATE_HANDLER_ENABLED_PROPERTY, false);
+        unreadHandlerEnabled = JiveGlobals.getBooleanProperty(
+                UNREAD_HANDLER_ENABLED_PROPERTY, false); 
+        mucHandlerEnabled = JiveGlobals.getBooleanProperty(
+                MUC_HANDLER_ENABLED_PROPERTY, false); 
     }
 
     /**
@@ -159,6 +246,20 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
     public void interceptPacket(Packet packet, Session session, boolean read,
             boolean processed) throws PacketRejectedException {
+
+        // if ((packet instanceof Message)) {
+        //     Log.warn("Got message: " + packet.toString());
+        // }
+
+        /**
+         * Ignore forwarded messages
+         */
+        if ((packet instanceof Message) && (((Message) packet).getElement().attributeValue("forwarded") != null)) {
+            if (Log.isDebugEnabled()) {
+                Log.warn("Ignoring forwarded message: " + packet.toString());
+            }
+            return;
+        }
 
         /**
          * Adds date to all conversation packets, in the same fashion
@@ -218,9 +319,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             if (child != null) {
                 String uri = ((Element) child).getNamespaceURI().toString();
                 String qualifiedname = ((Element) child).getQualifiedName().toString();
-                IQ.Type type = ((IQ) packet).getType();
 
-                if (uri.equals("xmpp:join:msgq") && qualifiedname.equals("query") && type.equals(IQ.Type.valueOf("get"))) {
+                if (uri.equals("xmpp:join:msgq") && qualifiedname.equals("query")) {
                     //Get the fields we are interested in (all the "room" requests)
                     List children = ((IQ) packet).getChildElement().elements("room");
                     if (!children.isEmpty()) {
@@ -231,10 +331,13 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                         IQ reply = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
                         reply.setChildElement("query", "xmpp:join:msgq");
 
+                        Element cur;
+                        String qroom;
+                        String qdate;
                         while (fieldElems.hasNext()) {
-                            Element cur = (Element) fieldElems.next();
-                            String qroom = cur.attribute("room_jid").getValue();
-                            String qdate = cur.attribute("since").getValue();
+                            cur = (Element) fieldElems.next();
+                            qroom = cur.attribute("room_jid").getValue();
+                            qdate = cur.attribute("since").getValue();
                             rescount = sujMessageHandler.getArchivedMessageCount(qroom, qdate);
 
                             // Choo choo, makes the train
@@ -285,9 +388,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         if (isValidRegisterPacket(packet, read, processed)) {
             String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
             String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
-            IQ.Type type = ((IQ) packet).getType();
 
-            if (uri.equals("jabber:iq:register") && qualifiedname.equals("query") && type.equals(IQ.Type.valueOf("set"))) {
+            if (uri.equals("jabber:iq:register") && qualifiedname.equals("query")) {
                 String innerUri = ((IQ) packet).getChildElement().element("x").getNamespaceURI().toString();
                 String innerQualifiedname = ((IQ) packet).getChildElement().element("x").getQualifiedName().toString();
                 String innerType = ((IQ) packet).getChildElement().element("x").attribute("type").getValue().toString();
@@ -303,8 +405,9 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
                     //Get the field we are interested in, in this example we use the "email" attribute as the token
                     Iterator fieldElems = ((IQ) packet).getChildElement().element("x").elementIterator();
+                    Element cur;
                     while (fieldElems.hasNext()) {
-                        Element cur = (Element) fieldElems.next();
+                        cur = (Element) fieldElems.next();
                         if (("email").equals(cur.attribute("var").getValue())) {
                             Log.warn("I got the token! It's " + cur.getStringValue());
                         }
@@ -329,21 +432,99 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 }
             }
         }
+
+        /**
+        * Hijack the MUC requests and check if notifications should be sent when:
+        * - user is online but there's ongoing activity on a MUC the user belongs to (live notifications/IQ messages)
+        * - user if offline and there are unread messages (timed/delayed notifications)
+        *
+        * Example MUC activity packet:
+        * <message content="text" to="gc_930f3e070d7@conference.mediline" type="groupchat" from="test2@mediline/7e3">
+        *   <body>Message</body>
+        *   <delay xmlns="urn:xmpp:delay" from="test2@mediline/7e3" stamp="2010-02-12T13:36:22.715Z"/>
+        * </message>
+        */
+        if (isValidMUCPacket(packet, read, processed)){
+            //Log.warn("We got a MUC packet!" + packet.toString());
+
+            MUCRoom room = rooms.get(new JID(packet.getElement().attribute("to").getValue()));
+            if (room != null) {
+                makeHashByJID();
+                room = rooms.get(new JID(packet.getElement().attribute("to").getValue()));
+            }
+
+            Iterator room_users = room.getMembers().iterator();
+            JID user;
+            while (room_users.hasNext()){
+                user = (JID) room_users.next();
+                MUCRole role = room.getOccupantByFullJID(user);
+
+                // User not in chatroom
+                if (role == null){
+                    // If user is online still send the message (soft-forward)
+                    try {
+                        // -1 user is online
+                        // >=0 is the number of miliseconds since the user logged out
+                        if (presenceManager.getLastActivity(userManager.getUser(user.getNode())) == -1) {
+                            Message forwardMsg = (Message) packet.createCopy();
+                            forwardMsg.setFrom(new JID(packet.getElement().attribute("to").getValue()));
+                            forwardMsg.setTo(user);
+                            forwardMsg.getElement().addAttribute("forwarded","1");
+                            messageRouter.route(forwardMsg);
+                        }
+                    } catch(Exception e) {
+                        Log.warn("User " + user.getNode() + " not found: " + e);
+                    }
+                }
+            }
+        }
     }
+
+    /**
+     * Build a map with JID, MUCRoom from all chatrooms in the system
+     */
+    private void makeHashByJID() {
+        Iterator mucs = mucService.getChatRooms().iterator();
+        MUCRoom cr;
+        while (mucs.hasNext()) {
+            cr = (MUCRoom) mucs.next();
+            rooms.put((JID) cr.getJID(), (MUCRoom) cr);
+        }
+    }
+
+    // /**
+    //  * Timed tasks
+    //  */
+    // private class CleanupTask extends TimerTask {
+    //     @Override
+    //     public void run() {
+    //         if (ClusterManager.isClusteringStarted() && !ClusterManager.isSeniorClusterMember()) {
+    //             // Do nothing if we are in a cluster and this JVM is not the senior cluster member
+    //             return;
+    //         }
+    //         try {
+    //             cleanupRooms();
+    //         }
+    //         catch (Throwable e) {
+    //             Log.error("Error in the timed task: ", e);
+    //         }
+    //     }
+    // }
 
     private boolean isValidAddDataPacket(Packet packet, boolean read, boolean processed) {
         return  dateHandlerEnabled
                 && !processed
                 && read
-                && (packet instanceof Message);
+                && packet instanceof Message;
     }
 
     private boolean isValidMsgQueryPacket(Packet packet, boolean read, boolean processed) {
-        return  !processed
+        return  unreadHandlerEnabled
+                && !processed
                 && read
-                && packet instanceof IQ;
-                //&& packet instanceof IQ 
-                //&& packet.getType() == "get" 
+                && packet instanceof IQ
+                && ((IQ)packet).getType().equals(IQ.Type.get);
+                //&& packet.getType() == IQ.Type.get;
                 //&& packet.isRequest();
     }
 
@@ -351,7 +532,17 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         return  registerHandlerEnabled
                 && !processed
                 && read
-                && packet instanceof IQ;
+                && packet instanceof IQ
+                && ((IQ)packet).getType().equals(IQ.Type.set);
+                //&& packet.isRequest();
+    }
+
+    private boolean isValidMUCPacket(Packet packet, boolean read, boolean processed) {
+        return  mucHandlerEnabled
+                && !processed
+                && read
+                && packet instanceof Message
+                && ((Message)packet).getType().equals(Message.Type.groupchat);
                 //&& packet.Type == IQ.Type.get;
                 //&& packet.isRequest();
     }

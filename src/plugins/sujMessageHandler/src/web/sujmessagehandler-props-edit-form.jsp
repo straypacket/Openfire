@@ -17,8 +17,12 @@
     //handler options
     String [] registerHandlerChecked = ParamUtils.getParameters(request, "registerhandler");
     String [] dateHandlerChecked = ParamUtils.getParameters(request, "datehandler");
+    String [] unreadHandlerChecked = ParamUtils.getParameters(request, "unreadhandler");
+    String [] mucHandlerChecked = ParamUtils.getParameters(request, "muchandler");
     boolean registerHandlerEnabled = registerHandlerChecked.length > 0;
     boolean dateHandlerEnabled = dateHandlerChecked.length > 0;
+    boolean unreadHandlerEnabled = unreadHandlerChecked.length > 0;
+    boolean mucHandlerEnabled = mucHandlerChecked.length > 0;
     
     //get handle to plugin
 	SUJMessageHandlerPlugin plugin = (SUJMessageHandlerPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("sujmessagehandler");
@@ -29,6 +33,8 @@
 	    if (errors.size() == 0) {
 		    plugin.setRegistHandlerEnabled(registerHandlerEnabled);
             plugin.setDateHandlerEnabled(dateHandlerEnabled);
+            plugin.setUnreadHandlerEnabled(unreadHandlerEnabled);
+            plugin.setMUCHandlerEnabled(mucHandlerEnabled);
 	        response.sendRedirect("sujmessagehandler-props-edit-form.jsp?success=true");
 	        return;
 	    }
@@ -41,6 +47,8 @@
     
     registerHandlerEnabled = plugin.isRegisterHandlerEnabled();
     dateHandlerEnabled = plugin.isDateHandlerEnabled();
+    unreadHandlerEnabled = plugin.isUnreadHandlerEnabled();
+    mucHandlerEnabled = plugin.isMUCHandlerEnabled();
 
 %>
 
@@ -98,6 +106,14 @@ Use the form below to edit message handler settings.<br>
 	<tr>
 		<td>&nbsp;</td>
         <td><input type="checkbox" name="registerhandler" value="registerhandler" <%= registerHandlerEnabled ? "checked" : "" %>/>Handles special fields on user registration packets.</td>
+    </tr>
+    <tr>
+        <td>&nbsp;</td>
+        <td><input type="checkbox" name="unreadhandler" value="unreadhandler" <%= unreadHandlerEnabled ? "checked" : "" %>/>Handles IQ packets for unread message queries.</td>
+    </tr>
+    <tr>
+        <td>&nbsp;</td>
+        <td><input type="checkbox" name="muchandler" value="muchandler" <%= mucHandlerEnabled ? "checked" : "" %>/>Handles MUC packets for offline and online but out-of-MUC notifications.</td>
     </tr>
     <tr>
         <td>&nbsp;</td>
