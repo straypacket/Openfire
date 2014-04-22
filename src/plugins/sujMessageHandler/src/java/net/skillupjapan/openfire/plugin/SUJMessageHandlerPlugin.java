@@ -84,7 +84,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     /**
      * The expected value is a boolean
      */
-    public static final String MUC_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.muc.handler.enabled";
+    public static final String OUT_OF_MUC_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.outofmuc.handler.enabled";
 
     /**
      * the hook into the inteceptor chain
@@ -144,7 +144,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     /**
      * flag if MUC messages should be handled.
      */
-    private boolean mucHandlerEnabled;
+    private boolean outOfMucHandlerEnabled;
 
     /**
      * Hash with all the rooms
@@ -173,7 +173,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         setRegistHandlerEnabled(false);
         setDateHandlerEnabled(false);
         setUnreadHandlerEnabled(false);
-        setMUCHandlerEnabled(false);
+        setOutOfMUCHandlerEnabled(false);
     }
 
     public boolean isRegisterHandlerEnabled() {
@@ -188,8 +188,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         return unreadHandlerEnabled;
     }
 
-    public boolean isMUCHandlerEnabled() {
-        return mucHandlerEnabled;
+    public boolean isOutOfMUCHandlerEnabled() {
+        return outOfMucHandlerEnabled;
     }
 
     public void setRegistHandlerEnabled(boolean enabled) {
@@ -210,9 +210,9 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 enabled ? "true" : "false");
     }
 
-    public void setMUCHandlerEnabled(boolean enabled) {
-        mucHandlerEnabled = enabled;
-        JiveGlobals.setProperty(MUC_HANDLER_ENABLED_PROPERTY,
+    public void setOutOfMUCHandlerEnabled(boolean enabled) {
+        outOfMucHandlerEnabled = enabled;
+        JiveGlobals.setProperty(OUT_OF_MUC_HANDLER_ENABLED_PROPERTY,
                 enabled ? "true" : "false");
     }
 
@@ -232,8 +232,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 DATE_HANDLER_ENABLED_PROPERTY, false);
         unreadHandlerEnabled = JiveGlobals.getBooleanProperty(
                 UNREAD_HANDLER_ENABLED_PROPERTY, false); 
-        mucHandlerEnabled = JiveGlobals.getBooleanProperty(
-                MUC_HANDLER_ENABLED_PROPERTY, false); 
+        outOfMucHandlerEnabled = JiveGlobals.getBooleanProperty(
+                OUT_OF_MUC_HANDLER_ENABLED_PROPERTY, false); 
     }
 
     /**
@@ -444,9 +444,12 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         *   <delay xmlns="urn:xmpp:delay" from="test2@mediline/7e3" stamp="2010-02-12T13:36:22.715Z"/>
         * </message>
         */
-        if (isValidMUCPacket(packet, read, processed)){
+        if (isValidOutOfMUCPacket(packet, read, processed)){
             //Log.warn("We got a MUC packet!" + packet.toString());
 
+            // This needs to be improved!!!
+            // Right now, I'm only remaking the map if new chat messages from an unknown (new) room appear
+            // A listener for new MUC rooms should be handling this
             MUCRoom room = rooms.get(new JID(packet.getElement().attribute("to").getValue()));
             if (room != null) {
                 makeHashByJID();
@@ -537,8 +540,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 //&& packet.isRequest();
     }
 
-    private boolean isValidMUCPacket(Packet packet, boolean read, boolean processed) {
-        return  mucHandlerEnabled
+    private boolean isValidOutOfMUCPacket(Packet packet, boolean read, boolean processed) {
+        return  outOfMucHandlerEnabled
                 && !processed
                 && read
                 && packet instanceof Message

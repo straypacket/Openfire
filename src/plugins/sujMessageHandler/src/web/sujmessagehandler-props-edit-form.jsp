@@ -18,11 +18,11 @@
     String [] registerHandlerChecked = ParamUtils.getParameters(request, "registerhandler");
     String [] dateHandlerChecked = ParamUtils.getParameters(request, "datehandler");
     String [] unreadHandlerChecked = ParamUtils.getParameters(request, "unreadhandler");
-    String [] mucHandlerChecked = ParamUtils.getParameters(request, "muchandler");
+    String [] outOfMUCHandlerChecked = ParamUtils.getParameters(request, "outofmuchandler");
     boolean registerHandlerEnabled = registerHandlerChecked.length > 0;
     boolean dateHandlerEnabled = dateHandlerChecked.length > 0;
     boolean unreadHandlerEnabled = unreadHandlerChecked.length > 0;
-    boolean mucHandlerEnabled = mucHandlerChecked.length > 0;
+    boolean outOfMUCHandlerEnabled = outOfMUCHandlerChecked.length > 0;
     
     //get handle to plugin
 	SUJMessageHandlerPlugin plugin = (SUJMessageHandlerPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("sujmessagehandler");
@@ -34,7 +34,7 @@
 		    plugin.setRegistHandlerEnabled(registerHandlerEnabled);
             plugin.setDateHandlerEnabled(dateHandlerEnabled);
             plugin.setUnreadHandlerEnabled(unreadHandlerEnabled);
-            plugin.setMUCHandlerEnabled(mucHandlerEnabled);
+            plugin.setOutOfMUCHandlerEnabled(outOfMUCHandlerEnabled);
 	        response.sendRedirect("sujmessagehandler-props-edit-form.jsp?success=true");
 	        return;
 	    }
@@ -48,7 +48,7 @@
     registerHandlerEnabled = plugin.isRegisterHandlerEnabled();
     dateHandlerEnabled = plugin.isDateHandlerEnabled();
     unreadHandlerEnabled = plugin.isUnreadHandlerEnabled();
-    mucHandlerEnabled = plugin.isMUCHandlerEnabled();
+    outOfMUCHandlerEnabled = plugin.isOutOfMUCHandlerEnabled();
 
 %>
 
@@ -113,7 +113,7 @@ Use the form below to edit message handler settings.<br>
     </tr>
     <tr>
         <td>&nbsp;</td>
-        <td><input type="checkbox" name="muchandler" value="muchandler" <%= mucHandlerEnabled ? "checked" : "" %>/>Handles MUC packets for offline and online but out-of-MUC notifications.</td>
+        <td><input type="checkbox" name="outofmuchandler" value="outofmuchandler" <%= outOfMUCHandlerEnabled ? "checked" : "" %>/>Handles forwarding of messages for out-of-MUC users.</td>
     </tr>
     <tr>
         <td>&nbsp;</td>
