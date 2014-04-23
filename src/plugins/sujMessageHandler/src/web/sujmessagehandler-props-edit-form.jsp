@@ -117,11 +117,11 @@ Use the form below to edit message handler settings.<br>
     </tr>
     <tr>
         <td>&nbsp;</td>
-        <td><input type="checkbox" name="outofmuchandler" value="outofmuchandler" <%= outOfMUCHandlerEnabled ? "checked" : "" %>/>Handles forwarding of messages for out-of-MUC users.</td>
+        <td><input type="checkbox" name="outofmuchandler" value="outofmuchandler" <%= outOfMUCHandlerEnabled ? "checked" : "" %>/>Handles forwarding of messages for ONLINE out-of-MUC users.</td>
     </tr>
     <tr>
         <td>&nbsp;</td>
-        <td><input type="checkbox" name="offlinemuchandler" value="offlinemuchandler" <%= offlineMUCHandlerEnabled ? "checked" : "" %>/>Handles timed notificartions to offline users users.</td>
+        <td><input type="checkbox" name="offlinemuchandler" value="offlinemuchandler" <%= offlineMUCHandlerEnabled ? "checked" : "" %> <%= outOfMUCHandlerEnabled ? "" : "disabled" %>/>Enables push notifications to OFFLINE users (Needs out-of-MUC enabled!).</td>
     </tr>
     <tr>
         <td>&nbsp;</td>

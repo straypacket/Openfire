@@ -457,8 +457,9 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         }
 
         /**
-        * Hijack the MUC requests and check if messages should be forwarded when the user is online 
-        * but there's ongoing activity on a MUC the user belongs to (live notifications)
+        * Hijack the MUC requests and check if notifications should be sent when:
+        * - user is online but there's ongoing activity on a MUC the user belongs to (live notifications/IQ messages)
+        * - user if offline and there are unread messages (push notifications)
         *
         * Example MUC activity packet:
         * <message content="text" to="gc_930f3e070d7@conference.mediline" type="groupchat" from="test2@mediline/7e3">
@@ -486,36 +487,37 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
                 // User not in chatroom
                 if (role == null){
-                    // If user is online still send the message (soft-forward)
+                    if (Log.isDebugEnabled()) {
+                        Log.warn("User " + user.toString() + " not in chatroom!");
+                    }
                     try {
-                        // -1 user is online
-                        // >=0 is the number of miliseconds since the user logged out
-                        if (presenceManager.getLastActivity(userManager.getUser(user.getNode())) == -1) {
+                        // If user is online still send the message (soft-forward)
+                        if (presenceManager.isAvailable(userManager.getUser(user.getNode()))) {
+                            if (Log.isDebugEnabled()) {
+                                Log.warn("Forwarding message to user " + user.toString() );
+                            }
                             Message forwardMsg = (Message) packet.createCopy();
                             forwardMsg.setFrom(new JID(packet.getElement().attribute("to").getValue()));
                             forwardMsg.setTo(user);
                             forwardMsg.getElement().addAttribute("forwarded","1");
                             messageRouter.route(forwardMsg);
                         }
+                        else {
+                            // If push notifications are enabled
+                            if (offlineMucHandlerEnabled) {
+                                // Send push notification to user, call you favouritest APN
+                                // ... Good luck! :D
+                                if (Log.isDebugEnabled()) {
+                                    Log.warn("Sending push notification to user " + user.toString() );
+                                }
+                            }
+
+                        }
                     } catch(Exception e) {
                         Log.warn("User " + user.getNode() + " not found: " + e);
                     }
                 }
             }
-        }
-
-        /**
-        * Hijack the MUC requests and check if push notifications should be sent when the user if offline
-        * and there are unread messages (timed/delayed notifications)
-        *
-        * Example MUC activity packet:
-        * <message content="text" to="gc_930f3e070d7@conference.mediline" type="groupchat" from="test2@mediline/7e3">
-        *   <body>Message</body>
-        *   <delay xmlns="urn:xmpp:delay" from="test2@mediline/7e3" stamp="2010-02-12T13:36:22.715Z"/>
-        * </message>
-        */
-        if (isValidOutOfMUCPacket(packet, read, processed)){
-
         }
     }
 
@@ -530,25 +532,6 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             rooms.put((JID) cr.getJID(), (MUCRoom) cr);
         }
     }
-
-    // /**
-    //  * Timed tasks
-    //  */
-    // private class CleanupTask extends TimerTask {
-    //     @Override
-    //     public void run() {
-    //         if (ClusterManager.isClusteringStarted() && !ClusterManager.isSeniorClusterMember()) {
-    //             // Do nothing if we are in a cluster and this JVM is not the senior cluster member
-    //             return;
-    //         }
-    //         try {
-    //             cleanupRooms();
-    //         }
-    //         catch (Throwable e) {
-    //             Log.error("Error in the timed task: ", e);
-    //         }
-    //     }
-    // }
 
     private boolean isValidAddDataPacket(Packet packet, boolean read, boolean processed) {
         return  dateHandlerEnabled
@@ -578,16 +561,6 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
     private boolean isValidOutOfMUCPacket(Packet packet, boolean read, boolean processed) {
         return  outOfMucHandlerEnabled
-                && !processed
-                && read
-                && packet instanceof Message
-                && ((Message)packet).getType().equals(Message.Type.groupchat);
-                //&& packet.Type == IQ.Type.get;
-                //&& packet.isRequest();
-    }
-
-    private boolean isValidOfflineMUCPacket(Packet packet, boolean read, boolean processed) {
-        return  offlineMucHandlerEnabled
                 && !processed
                 && read
                 && packet instanceof Message
