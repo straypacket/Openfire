@@ -91,36 +91,36 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         PropertyEventDispatcher.removeListener(this);
     }
 
-    public void createUser(String username, String password, String name, String email, String groupNames)
+    public void createUser(String username, String password, String name, String email, String tenantNames)
             throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException
     {
         userManager.createUser(username, password, name, email);
         userManager.getUser(username);
 
-        if (groupNames != null) {
-            Collection<Group> groups = new ArrayList<Group>();
-            StringTokenizer tkn = new StringTokenizer(groupNames, ",");
+        if (tenantNames != null) {
+            Collection<Group> tenants = new ArrayList<Group>();
+            StringTokenizer tkn = new StringTokenizer(tenantNames, ",");
 
             while (tkn.hasMoreTokens())
             {
-				String groupName = tkn.nextToken();
-				Group group = null;
+				String tenantName = tkn.nextToken();
+				Group tenant = null;
 
                 try {
-                    GroupManager.getInstance().getGroup(groupName);
+                    GroupManager.getInstance().getGroup(tenantName);
                 } catch (GroupNotFoundException e) {
-                    // Create this group                    ;
-					GroupManager.getInstance().createGroup(groupName);
+                    // Create this tenant
+					GroupManager.getInstance().createGroup(tenantName);
                 }
-				group = GroupManager.getInstance().getGroup(groupName);
-				group.getProperties().put("sharedRoster.showInRoster", "onlyGroup");
-				group.getProperties().put("sharedRoster.displayName", groupName);
-				group.getProperties().put("sharedRoster.groupList", "");
+				tenant = GroupManager.getInstance().getGroup(tenantName);
+				tenant.getProperties().put("sharedRoster.showInRoster", "onlyGroup");
+				tenant.getProperties().put("sharedRoster.displayName", tenantName);
+				tenant.getProperties().put("sharedRoster.groupList", "");
 
-                groups.add(group);
+                tenants.add(tenant);
             }
-            for (Group group : groups) {
-                group.getMembers().add(server.createJID(username, null));
+            for (Group tenant : tenants) {
+                tenant.getMembers().add(server.createJID(username, null));
             }
         }
     }
@@ -159,7 +159,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         LockOutManager.getInstance().enableAccount(username);
     }
 
-    public void updateUser(String username, String password, String name, String email, String groupNames)
+    public void updateUser(String username, String password, String name, String email, String tenantNames)
             throws UserNotFoundException, GroupAlreadyExistsException
     {
         User user = getUser(username);
@@ -167,43 +167,43 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         if (name != null) user.setName(name);
         if (email != null) user.setEmail(email);
 
-        if (groupNames != null) {
-            Collection<Group> newGroups = new ArrayList<Group>();
-            StringTokenizer tkn = new StringTokenizer(groupNames, ",");
+        if (tenantNames != null) {
+            Collection<Group> newTenants = new ArrayList<Group>();
+            StringTokenizer tkn = new StringTokenizer(tenantNames, ",");
 
             while (tkn.hasMoreTokens())
             {
-				String groupName = tkn.nextToken();
-				Group group = null;
+				String tenantName = tkn.nextToken();
+				Group tenant = null;
 
                 try {
-                    group = GroupManager.getInstance().getGroup(groupName);
+                    tenant = GroupManager.getInstance().getGroup(tenantName);
                 } catch (GroupNotFoundException e) {
-                    // Create this group                    ;
-					group = GroupManager.getInstance().createGroup(groupName);
-                	group.getProperties().put("sharedRoster.showInRoster", "onlyGroup");
-                	group.getProperties().put("sharedRoster.displayName", groupName);
-                	group.getProperties().put("sharedRoster.groupList", "");
+                    // Create this tenant
+					tenant = GroupManager.getInstance().createGroup(tenantName);
+                	tenant.getProperties().put("sharedRoster.showInRoster", "onlyGroup");
+                	tenant.getProperties().put("sharedRoster.displayName", tenantName);
+                	tenant.getProperties().put("sharedRoster.groupList", "");
                 }
 
-                newGroups.add(group);
+                newTenants.add(tenant);
             }
 
-            Collection<Group> existingGroups = GroupManager.getInstance().getGroups(user);
-            // Get the list of groups to add to the user
-            Collection<Group> groupsToAdd =  new ArrayList<Group>(newGroups);
-            groupsToAdd.removeAll(existingGroups);
-            // Get the list of groups to remove from the user
-            Collection<Group> groupsToDelete =  new ArrayList<Group>(existingGroups);
-            groupsToDelete.removeAll(newGroups);
+            Collection<Group> existingTenants = GroupManager.getInstance().getGroups(user);
+            // Get the list of tenants to add to the user
+            Collection<Group> tenantsToAdd =  new ArrayList<Group>(newTenants);
+            tenantsToAdd.removeAll(existingTenants);
+            // Get the list of tenants to remove from the user
+            Collection<Group> tenantsToDelete =  new ArrayList<Group>(existingTenants);
+            tenantsToDelete.removeAll(newTenants);
 
-            // Add the user to the new groups
-            for (Group group : groupsToAdd) {
-                group.getMembers().add(server.createJID(username, null));
+            // Add the user to the new tenants
+            for (Group tenant : tenantsToAdd) {
+                tenant.getMembers().add(server.createJID(username, null));
             }
-            // Remove the user from the old groups
-            for (Group group : groupsToDelete) {
-                group.getMembers().remove(server.createJID(username, null));
+            // Remove the user from the old s
+            for (Group tenant : tenantsToDelete) {
+                tenant.getMembers().remove(server.createJID(username, null));
             }
         }
     }
@@ -215,12 +215,12 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
      * @param itemJID the JID of the roster item to be added.
      * @param itemName the nickname of the roster item.
      * @param subscription the type of subscription of the roster item. Possible values are: -1(remove), 0(none), 1(to), 2(from), 3(both).
-     * @param groupNames the name of a group to place contact into.
+     * @param tenantNames the name of a group to place contact into.
      * @throws UserNotFoundException if the user does not exist in the local server.
      * @throws UserAlreadyExistsException if roster item with the same JID already exists.
      * @throws SharedGroupException if roster item cannot be added to a shared group.
      */
-    public void addRosterItem(String username, String itemJID, String itemName, String subscription, String groupNames)
+    public void addRosterItem(String username, String itemJID, String itemName, String subscription, String tenantNames)
             throws UserNotFoundException, UserAlreadyExistsException, SharedGroupException
     {
         getUser(username);
@@ -236,14 +236,14 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         }
 
         if (r != null) {
-            List<String> groups = new ArrayList<String>();
-            if (groupNames != null) {
-                StringTokenizer tkn = new StringTokenizer(groupNames, ",");
+            List<String> tenants = new ArrayList<String>();
+            if (tenantNames != null) {
+                StringTokenizer tkn = new StringTokenizer(tenantNames, ",");
                 while (tkn.hasMoreTokens()) {
-                    groups.add(tkn.nextToken());
+                    tenants.add(tkn.nextToken());
                 }
             }
-            RosterItem ri = r.createRosterItem(j, itemName, groups, false, true);
+            RosterItem ri = r.createRosterItem(j, itemName, tenants, false, true);
             if (subscription == null) {
                 subscription = "0";
             }
@@ -259,11 +259,11 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
      * @param itemJID the JID of the roster item to be updated.
      * @param itemName the nickname of the roster item.
      * @param subscription the type of subscription of the roster item. Possible values are: -1(remove), 0(none), 1(to), 2(from), 3(both).
-     * @param groupNames the name of a group.
+     * @param tenantNames the name of a group.
      * @throws UserNotFoundException if the user does not exist in the local server or roster item does not exist.
      * @throws SharedGroupException if roster item cannot be added to a shared group.
      */
-    public void updateRosterItem(String username, String itemJID, String itemName, String subscription, String groupNames)
+    public void updateRosterItem(String username, String itemJID, String itemName, String subscription, String tenantNames)
             throws UserNotFoundException, SharedGroupException
     {
         getUser(username);
@@ -272,15 +272,15 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
 
         RosterItem ri = r.getRosterItem(j);
 
-        List<String> groups = new ArrayList<String>();
-        if (groupNames != null) {
-            StringTokenizer tkn = new StringTokenizer(groupNames, ",");
+        List<String> tenants = new ArrayList<String>();
+        if (tenantNames != null) {
+            StringTokenizer tkn = new StringTokenizer(tenantNames, ",");
             while (tkn.hasMoreTokens()) {
-                groups.add(tkn.nextToken());
+                tenants.add(tkn.nextToken());
             }
         }
 
-        ri.setGroups(groups);
+        ri.setGroups(tenants);
         ri.setNickname(itemName);
 
         if (subscription == null) {
@@ -309,6 +309,59 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         //r.getRosterItem(j);
 
         r.deleteRosterItem(j, true);
+    }
+
+    /**
+     * Tenant management utility functions
+     */
+    public void addTenantItem(String tenant) 
+            throws GroupAlreadyExistsException, SharedGroupException
+    {
+        if (tenant != null) {
+            try {
+                // Tenant already exists, do nothing
+                GroupManager.getInstance().getGroup(tenant);
+            } catch (GroupNotFoundException e) {
+                // Otherwise create this tenant
+                GroupManager.getInstance().createGroup(tenant);
+            }
+        }
+    }
+
+    public void removeTenantItem(String tenant) 
+            throws GroupAlreadyExistsException, SharedGroupException 
+    {
+        if (tenant != null) {
+            try {
+                // Delete tenant
+                GroupManager.getInstance().deleteGroup(GroupManager.getInstance().getGroup(tenant));
+            } catch (GroupNotFoundException e) {
+                // If it exists, do nothing/notify
+            }
+        }
+    }
+
+    public void updateTenantItem(String tenant, String name, String description)
+            throws GroupAlreadyExistsException, SharedGroupException 
+    {
+        if (tenant != null) {
+            Group t = null;
+            try {
+                // Tenant already exists, update
+                t = GroupManager.getInstance().getGroup(tenant);
+            } catch (GroupNotFoundException e) {
+                // Otherwise create this tenant
+                t = GroupManager.getInstance().createGroup(tenant);
+            }
+
+            if (name != null) {
+                t.setName(name);
+            }
+
+            if (description != null) {
+                t.setDescription(description);
+            }
+        }
     }
 
     /**

@@ -37,6 +37,7 @@ import org.jivesoftware.openfire.XMPPServer;
 import net.skillupjapan.openfire.plugin.SUJoinPlugin;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserNotFoundException;
+import org.jivesoftware.openfire.group.GroupNotFoundException;
 import org.jivesoftware.util.Log;
 import org.xmpp.packet.JID;
 
@@ -96,10 +97,12 @@ public class SUJoinServlet extends HttpServlet {
         String username = request.getParameter("username");
         String password = request.getParameter("password");
         String name = request.getParameter("name");
+        String desc = request.getParameter("description");
         String email = request.getParameter("email");
         String type = request.getParameter("type");
         String secret = request.getParameter("secret");
-        String groupNames = request.getParameter("groups");
+        String tenantNames = request.getParameter("tenants");
+        String tenant = request.getParameter("tenant");
         String item_jid = request.getParameter("item_jid");
         String sub = request.getParameter("subscription");
         //No defaults, add, delete, update only
@@ -138,7 +141,7 @@ public class SUJoinServlet extends HttpServlet {
             username = JID.escapeNode(username);
             username = Stringprep.nodeprep(username);
             if ("add".equals(type)) {
-                plugin.createUser(username, password, name, email, groupNames);
+                plugin.createUser(username, password, name, email, tenantNames);
                 replyMessage("ok",response, out);
                 //imageProvider.sendInfo(request, response, presence);
             }
@@ -156,20 +159,32 @@ public class SUJoinServlet extends HttpServlet {
                 replyMessage("ok",response,out);
             }
             else if ("update".equals(type)) {
-                plugin.updateUser(username, password,name,email, groupNames);
+                plugin.updateUser(username, password,name,email, tenantNames);
                 replyMessage("ok",response,out);
                 //xmlProvider.sendInfo(request, response, presence);
             }
             else if ("add_roster".equals(type)) {
-                plugin.addRosterItem(username, item_jid, name, sub, groupNames);
+                plugin.addRosterItem(username, item_jid, name, sub, tenantNames);
                 replyMessage("ok",response, out);
             }
             else if ("update_roster".equals(type)) {
-                plugin.updateRosterItem(username, item_jid, name, sub, groupNames);
+                plugin.updateRosterItem(username, item_jid, name, sub, tenantNames);
                 replyMessage("ok",response, out);
             }
             else if ("delete_roster".equals(type)) {
                 plugin.deleteRosterItem(username, item_jid);
+                replyMessage("ok",response, out);
+            }
+            else if ("add_tenant".equals(type)) {
+                plugin.addTenantItem(tenant);
+                replyMessage("ok",response, out);
+            }
+            else if ("remove_tenant".equals(type)) {
+                plugin.removeTenantItem(tenant);
+                replyMessage("ok",response, out);
+            }
+            else if ("update_tenant".equals(type)) {
+                plugin.updateTenantItem(tenant, name, desc);
                 replyMessage("ok",response, out);
             }
             else {
@@ -184,12 +199,13 @@ public class SUJoinServlet extends HttpServlet {
             replyError("UserNotFoundException",response, out);
         }
         catch (IllegalArgumentException e) {
-            
             replyError("IllegalArgumentException",response, out);
         }
         catch (SharedGroupException e) {
-        	
         	replyError("SharedGroupException",response, out);
+        }
+        catch (GroupNotFoundException e) {
+            replyError("GroupNotFoundException", response, out);
         }
         catch (Exception e) {
             replyError(e.toString(),response, out);
