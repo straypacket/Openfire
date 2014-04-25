@@ -180,11 +180,10 @@ public class SUJMessageHandler {
      * Sets the JID for the second device
      *
      */
-    public String setSecondDeviceJID(String user, String pass, String jid) {
+    public int setSecondDeviceJID(String user, String pass, String jid) {
         Connection con = null;
         PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        String queryResult = null;
+        int rs = 0;
 
         try {
             con = DbConnectionManager.getConnection();
@@ -193,16 +192,13 @@ public class SUJMessageHandler {
             pstmt.setString(2, pass);
             pstmt.setString(3, jid);
 
-            rs = pstmt.executeQuery();
-            if (rs.next()) {
-                queryResult = rs.getString(1);
-            }
+            rs = pstmt.executeUpdate();
         } catch (SQLException sqle) {
             Log.error(sqle.getMessage(), sqle);
         } finally {
-            DbConnectionManager.closeConnection(rs, pstmt, con);
+            DbConnectionManager.closeConnection(con);
         }
-        return queryResult;
+        return rs;
     }
 
     /**

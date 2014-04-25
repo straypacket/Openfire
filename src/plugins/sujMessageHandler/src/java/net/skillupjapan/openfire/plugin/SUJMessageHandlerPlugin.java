@@ -294,9 +294,9 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     public void interceptPacket(Packet packet, Session session, boolean read,
             boolean processed) throws PacketRejectedException {
 
-        //if ((packet instanceof Message)) {
-        //    Log.warn("Got message: " + packet.toString());
-        //}
+        if ((packet instanceof Message)) {
+           Log.warn("Got message: " + packet.toString());
+        }
 
         /**
          * Ignore forwarded messages
@@ -652,6 +652,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          * </iq>         
          */
         if (isValidCreate2ndDevicePacket(packet, read, processed)) {
+            Log.warn("Inside 2nd device SET");
             String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
             String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
 
@@ -660,39 +661,39 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 //Get the id and password fields
                 String id = ((IQ) packet).getChildElement().element("id").getStringValue();
                 String password = ((IQ) packet).getChildElement().element("password").getStringValue();
-                String jid = ((IQ) packet).Element().attribute("from").getValue();
-                String query = null;
+                String jid = ((IQ) packet).getElement().attribute("from").getValue();
+                int queryRes = 0;
 
                 Log.warn("Just got a 2nd device registration IQ with username " + id + " password " + password + " and jid " + jid);
                 
                 try {
-                    query = sujMessageHandler.setSecondDeviceJID(id, password, jid);
+                    queryRes = sujMessageHandler.setSecondDeviceJID(id, password, jid);
+
+                    // Build reply
+                    IQ replyPacket = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
+
+                    if (queryRes == 0) {
+                        ((IQ) replyPacket).setType(IQ.Type.error);
+                        ((IQ) replyPacket).getElement().addElement("error").addAttribute("type", "cancel").addElement("conflict").addNamespace("", "urn:ietf:params:xml:ns:xmpp-stanzas");
+                    }
+                    else {
+                        ((IQ) replyPacket).setChildElement("query", "xmpp:join:2nd_device");
+                    }
+
+                    Log.warn("Reply: " + replyPacket.toString());
+
+                    if (replyPacket != null) {
+                        iqRouter.route(replyPacket);
+                    }
+                    else {
+                        Log.error ("Routing failed for IQ setting 2nd device packet: " 
+                        + replyPacket.toString());
+                    }
+
                 } catch (Exception ie) {
                     if (Log.isDebugEnabled()) {
                         Log.warn("Problem on request: " + ie.toString());
                     }
-                }
-
-                // Build reply
-                IQ replyPacket = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
-
-                if (query == null) {
-                    ((IQ) replyPacket).setType(IQ.Type.error);
-                    ((IQ) replyPacket).getElement().addElement("error").addAttribute("type", "cancel").addElement("conflict").addNamespace("", "urn:ietf:params:xml:ns:xmpp-stanzas");
-                }
-                else {
-                    ((IQ) replyPacket).setChildElement("query", "xmpp:join:2nd_device");
-                }
-
-                Log.warn("Reply: " + replyPacket.toString());
-
-                // Send packet
-                try {
-                    iqRouter.route(replyPacket);
-                }
-                catch (Exception rf) {
-                    Log.error ("Routing failed for IQ setting 2nd device packet: " 
-                        + replyPacket.toString());
                 }
             }
         }
