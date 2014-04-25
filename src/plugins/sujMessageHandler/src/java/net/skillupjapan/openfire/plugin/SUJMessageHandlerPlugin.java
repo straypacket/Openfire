@@ -498,47 +498,47 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             // Right now, I'm only remaking the map if new chat messages from an unknown (new) room appear
             // A listener for new MUC rooms should be handling this
             MUCRoom room = rooms.get(new JID(packet.getElement().attribute("to").getValue()));
-            if (room != null) {
+            if (room == null) {
                 makeHashByJID();
                 room = rooms.get(new JID(packet.getElement().attribute("to").getValue()));
-            }
 
-            Iterator room_users = room.getMembers().iterator();
-            JID user;
-            while (room_users.hasNext()){
-                user = (JID) room_users.next();
-                MUCRole role = room.getOccupantByFullJID(user);
+                Iterator room_users = room.getMembers().iterator();
+                JID user;
+                while (room_users.hasNext()){
+                    user = (JID) room_users.next();
+                    MUCRole role = room.getOccupantByFullJID(user);
 
-                // User not in chatroom
-                if (role == null){
-                    if (Log.isDebugEnabled()) {
-                        Log.warn("User " + user.toString() + " not in chatroom!");
-                    }
-                    try {
-                        // If user is online still send the message (soft-forward)
-                        if (presenceManager.isAvailable(userManager.getUser(user.getNode()))) {
-                            if (Log.isDebugEnabled()) {
-                                Log.warn("Forwarding message to user " + user.toString() );
-                            }
-                            Message forwardMsg = (Message) packet.createCopy();
-                            forwardMsg.setFrom(new JID(packet.getElement().attribute("to").getValue()));
-                            forwardMsg.setTo(user);
-                            forwardMsg.getElement().addAttribute("forwarded","1");
-                            messageRouter.route(forwardMsg);
+                    // User not in chatroom
+                    if (role == null){
+                        if (Log.isDebugEnabled()) {
+                            Log.warn("User " + user.toString() + " not in chatroom!");
                         }
-                        else {
-                            // If push notifications are enabled
-                            if (offlineMucHandlerEnabled) {
-                                // Send push notification to user, call you favouritest APN
-                                // ... Good luck! :D
+                        try {
+                            // If user is online still send the message (soft-forward)
+                            if (presenceManager.isAvailable(userManager.getUser(user.getNode()))) {
                                 if (Log.isDebugEnabled()) {
-                                    Log.warn("Sending push notification to user " + user.toString() );
+                                    Log.warn("Forwarding message to user " + user.toString() );
                                 }
+                                Message forwardMsg = (Message) packet.createCopy();
+                                forwardMsg.setFrom(new JID(packet.getElement().attribute("to").getValue()));
+                                forwardMsg.setTo(user);
+                                forwardMsg.getElement().addAttribute("forwarded","1");
+                                messageRouter.route(forwardMsg);
                             }
+                            else {
+                                // If push notifications are enabled
+                                if (offlineMucHandlerEnabled) {
+                                    // Send push notification to user, call you favouritest APN
+                                    // ... Good luck! :D
+                                    if (Log.isDebugEnabled()) {
+                                        Log.warn("Sending push notification to user " + user.toString() );
+                                    }
+                                }
 
+                            }
+                        } catch(Exception e) {
+                            Log.warn("User " + user.getNode() + " not found: " + e);
                         }
-                    } catch(Exception e) {
-                        Log.warn("User " + user.getNode() + " not found: " + e);
                     }
                 }
             }
