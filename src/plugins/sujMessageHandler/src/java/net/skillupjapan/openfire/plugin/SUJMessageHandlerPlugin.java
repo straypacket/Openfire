@@ -422,10 +422,10 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         *
         * Example registration packet:
         * <iq type="set" id="purple343f3f96" from="mediline-jabber01/68b64d0a">
-        *   <query xmlns="jabber:iq:register">
-        *     <x xmlns="jabber:x:data" type="submit">
+        *   <query xmlns="xmpp:iq:register">
+        *     <x xmlns="xmpp:x:data" type="submit">
         *       <field var="FORM_TYPE">
-        *         <value>jabber:iq:register</value>
+        *         <value>xmpp:iq:register</value>
         *       </field>
         *       ...
         *     </x>
@@ -436,7 +436,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
             String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
 
-            if (uri.equals("jabber:iq:register") && qualifiedname.equals("query")) {
+            if (uri.equals("xmpp:iq:register") && qualifiedname.equals("query")) {
                 String innerUri = ((IQ) packet).getChildElement().element("x").getNamespaceURI().toString();
                 String innerQualifiedname = ((IQ) packet).getChildElement().element("x").getQualifiedName().toString();
                 String innerType = ((IQ) packet).getChildElement().element("x").attribute("type").getValue().toString();
@@ -444,7 +444,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                     Log.warn("Possible register packet... ");
                 }
 
-                if ( innerUri.equals("jabber:x:data") && innerQualifiedname.equals("x") && innerType.equals("submit") ) {
+                if ( innerUri.equals("xmpp:x:data") && innerQualifiedname.equals("x") && innerType.equals("submit") ) {
                     if (Log.isDebugEnabled()) {
                         Log.warn("We got a registration submission!!");
                         Log.warn("packet:" + packet.toString());
@@ -550,7 +550,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          *
          * Received message:
          * <iq type="get" id="purple3436">
-         *   <query xmlns="jabber:join:2nd_device">
+         *   <query xmlns="xmpp:join:2nd_device">
          *     <id>username</id>
          *     <password>drowssap</password>
          *   </query>
@@ -558,7 +558,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          * 
          * A successful reply is:
          * <iq type="result" id="purple343f3f96">
-         *   <query xmlns="jabber:join:2nd_device">
+         *   <query xmlns="xmpp:join:2nd_device">
          *     <jid>test2@mediline</jid>
          *   </query>
          * </iq>
@@ -566,14 +566,14 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          * A failed password reply is:
          * <iq type="error" id="purple343f3f96">
          *   <error type="cancel">
-         *     <not-allowed xmlns="jabber:join:2nd_device"/>
+         *     <not-allowed xmlns="xmpp:join:2nd_device"/>
          *   </error>
          * </iq>
          *
          * An empty JID and secondID matchs reply is:
          * <iq type="error" id="purple343f3f96">
          *   <error type="cancel">
-         *     <not-acceptable xmlns="jabber:join:2nd_device"/>
+         *     <not-acceptable xmlns="xmpp:join:2nd_device"/>
          *   </error>
          * </iq>
          */
@@ -582,7 +582,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
             String jid = null;
 
-            if (uri.equals("jabber:join:2nd_device") && qualifiedname.equals("query")) {
+            if (uri.equals("xmpp:join:2nd_device") && qualifiedname.equals("query")) {
                 
                 //Get the id and password fields
                 String id = ((IQ) packet).getChildElement().element("id").getStringValue();
@@ -632,7 +632,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          *
          * Received message:
          * <iq type="set" id="purple3436">
-         *   <query xmlns="jabber:join:2nd_device">
+         *   <query xmlns="xmpp:join:2nd_device">
          *     <id>username</id>
          *     <password>drowssap</password>
          *     <jid>aa@bbb.com<jid>
@@ -641,7 +641,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          *
          * On ok, send:
          * <iq type="result" id="purple343f3f96">
-         *   <result>
+         *   <query>
          *     ok
          *   </result>
          * </iq>    
@@ -649,7 +649,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          * An empty JID and secondID matchs reply is:
          * <iq type="error" id="purple343f3f96">
          *   <error type="cancel">
-         *     <not-acceptable xmlns="jabber:join:2nd_device"/>
+         *     <not-acceptable xmlns="xmpp:join:2nd_device"/>
          *   </error>
          * </iq>         
          */
@@ -657,7 +657,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
             String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
 
-            if (uri.equals("jabber:join:2nd_device") && qualifiedname.equals("query")) {
+            if (uri.equals("xmpp:join:2nd_device") && qualifiedname.equals("query")) {
                 
                 //Get the id and password fields
                 String id = ((IQ) packet).getChildElement().element("id").getStringValue();
