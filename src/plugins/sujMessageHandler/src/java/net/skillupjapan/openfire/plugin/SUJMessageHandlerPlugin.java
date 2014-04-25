@@ -641,12 +641,10 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          *
          * On ok, send:
          * <iq type="result" id="purple343f3f96">
-         *   <query>
-         *     ok
-         *   </result>
+         *   <query xmlns="xmpp:join:2nd_device"/>
          * </iq>    
          *
-         * An empty JID and secondID matchs reply is:
+         * On error, the reply is:
          * <iq type="error" id="purple343f3f96">
          *   <error type="cancel">
          *     <not-acceptable xmlns="xmpp:join:2nd_device"/>
