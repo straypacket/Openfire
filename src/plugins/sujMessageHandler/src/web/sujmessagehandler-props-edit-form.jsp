@@ -20,11 +20,13 @@
     String [] unreadHandlerChecked = ParamUtils.getParameters(request, "unreadhandler");
     String [] outOfMUCHandlerChecked = ParamUtils.getParameters(request, "outofmuchandler");
     String [] offlineMUCHandlerChecked = ParamUtils.getParameters(request, "offlinemuchandler");
+    String [] secondDeviceHandlerChecked = ParamUtils.getParameters(request, "seconddevicehandler");
     boolean registerHandlerEnabled = registerHandlerChecked.length > 0;
     boolean dateHandlerEnabled = dateHandlerChecked.length > 0;
     boolean unreadHandlerEnabled = unreadHandlerChecked.length > 0;
     boolean outOfMUCHandlerEnabled = outOfMUCHandlerChecked.length > 0;
     boolean offlineMUCHandlerEnabled = offlineMUCHandlerChecked.length > 0;
+    boolean secondDeviceHandlerEnabled = secondDeviceHandlerChecked.length > 0;
     
     //get handle to plugin
 	SUJMessageHandlerPlugin plugin = (SUJMessageHandlerPlugin) XMPPServer.getInstance().getPluginManager().getPlugin("sujmessagehandler");
@@ -38,6 +40,7 @@
             plugin.setUnreadHandlerEnabled(unreadHandlerEnabled);
             plugin.setOutOfMUCHandlerEnabled(outOfMUCHandlerEnabled);
             plugin.setOfflineMUCHandlerEnabled(offlineMUCHandlerEnabled);
+            plugin.setSecondDeviceHandlerEnabled(secondDeviceHandlerEnabled);
 	        response.sendRedirect("sujmessagehandler-props-edit-form.jsp?success=true");
 	        return;
 	    }
@@ -53,6 +56,7 @@
     unreadHandlerEnabled = plugin.isUnreadHandlerEnabled();
     outOfMUCHandlerEnabled = plugin.isOutOfMUCHandlerEnabled();
     offlineMUCHandlerEnabled = plugin.isOfflineMUCHandlerEnabled();
+    secondDeviceHandlerEnabled = plugin.isSecondDeviceHandlerEnabled();
 
 %>
 
@@ -127,6 +131,10 @@ Use the form below to edit message handler settings.<br>
         <td>&nbsp;</td>
         <td><input type="checkbox" name="datehandler" value="datehandler" <%= dateHandlerEnabled ? "checked" : "" %>/>Adds date fields in user packets.</td>
 	</tr>
+    <tr>
+        <td>&nbsp;</td>
+        <td><input type="checkbox" name="seconddevicehandler" value="seconddevicehandler" <%= secondDeviceHandlerEnabled ? "checked" : "" %>/>Enables handling of second device registration messages.</td>
+    </tr>
     </tbody>
     </table>
     </div>

@@ -163,6 +163,30 @@ To install, unpack the .jar file with:
 
 This will install the plugin and you'll be able to see the plugin in action from OpenFire's web interface, at `Server/Server Settings`. No need to restart the servers.
 
+Extra database tables
+---------------------
+In order to have second device checking mechanisms in Openfire, the following table needs to be created in the Openfire database.
+
+```
+CREATE TABLE ofSecondDevice ( 
+	secondID VARCHAR(64) NOT NULL, 
+	secondPass VARCHAR(255) NOT NULL, 
+	jid VARCHAR(255) NOT NULL UNIQUE,
+	PRIMARY KEY (secondID) 
+);
+
+```
+
+The table looks like the following.
+
+| Field      | Type         | Null | Key | Default | Extra |
+|------------|--------------|------|-----|---------|-------|
+| secondID   | varchar(64)  | NO   | PRI | NULL    |       |
+| secondPass | varchar(255) | NO   |     | NULL    |       |
+| jid        | varchar(255) | NO   | UNI | NULL    |       |
+
+
+
 About
 -----
 

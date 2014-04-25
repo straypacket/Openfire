@@ -91,6 +91,12 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
      */
     public static final String OFFLINE_MUC_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.offlinemuc.handler.enabled";
 
+
+    /**
+     * The expected value is a boolean
+     */
+    public static final String SECOND_DEVICE_HANDLER_ENABLED_PROPERTY = "plugin.sujMessageHandler.2nd_device.handler.enabled";
+
     /**
      * the hook into the inteceptor chain
      */
@@ -157,6 +163,11 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     private boolean offlineMucHandlerEnabled;
 
     /**
+     * flag if second device messages should be handled.
+     */
+    private boolean secondDeviceHandlerEnabled;
+
+    /**
      * Hash with all the rooms
      */
     private Map<JID, MUCRoom> rooms = new ConcurrentHashMap<JID, MUCRoom>();
@@ -185,6 +196,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         setUnreadHandlerEnabled(false);
         setOutOfMUCHandlerEnabled(false);
         setOfflineMUCHandlerEnabled(false);
+        setSecondDeviceHandlerEnabled(false);
     }
 
     public boolean isRegisterHandlerEnabled() {
@@ -205,6 +217,10 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
     public boolean isOfflineMUCHandlerEnabled() {
         return offlineMucHandlerEnabled;
+    }
+
+    public boolean isSecondDeviceHandlerEnabled() {
+        return secondDeviceHandlerEnabled;
     }
 
     public void setRegistHandlerEnabled(boolean enabled) {
@@ -237,6 +253,12 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 enabled ? "true" : "false");
     }
 
+    public void setSecondDeviceHandlerEnabled(boolean enabled) {
+        secondDeviceHandlerEnabled = enabled;
+        JiveGlobals.setProperty(SECOND_DEVICE_HANDLER_ENABLED_PROPERTY,
+                enabled ? "true" : "false");
+    }
+
     public void initializePlugin(PluginManager pManager, File pluginDirectory) {
         // configure this plugin
         initHandlers();
@@ -256,7 +278,9 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         outOfMucHandlerEnabled = JiveGlobals.getBooleanProperty(
                 OUT_OF_MUC_HANDLER_ENABLED_PROPERTY, false); 
         offlineMucHandlerEnabled = JiveGlobals.getBooleanProperty(
-                OFFLINE_MUC_HANDLER_ENABLED_PROPERTY, false); 
+                OFFLINE_MUC_HANDLER_ENABLED_PROPERTY, false);
+        secondDeviceHandlerEnabled = JiveGlobals.getBooleanProperty(
+                SECOND_DEVICE_HANDLER_ENABLED_PROPERTY, false); 
     }
 
     /**
@@ -270,9 +294,9 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     public void interceptPacket(Packet packet, Session session, boolean read,
             boolean processed) throws PacketRejectedException {
 
-        // if ((packet instanceof Message)) {
-        //     Log.warn("Got message: " + packet.toString());
-        // }
+        //if ((packet instanceof Message)) {
+        //    Log.warn("Got message: " + packet.toString());
+        //}
 
         /**
          * Ignore forwarded messages
@@ -519,6 +543,161 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 }
             }
         }
+
+        /**
+         * Handles the second device check requests. This request is received
+         * without the client being authenticated with the server.
+         *
+         * Received message:
+         * <iq type="get" id="purple3436">
+         *   <query xmlns="jabber:join:2nd_device">
+         *     <id>username</id>
+         *     <password>drowssap</password>
+         *   </query>
+         * </iq>
+         * 
+         * A successful reply is:
+         * <iq type="result" id="purple343f3f96">
+         *   <query xmlns="jabber:join:2nd_device">
+         *     <jid>test2@mediline</jid>
+         *   </query>
+         * </iq>
+         *
+         * A failed password reply is:
+         * <iq type="error" id="purple343f3f96">
+         *   <error type="cancel">
+         *     <not-allowed xmlns="jabber:join:2nd_device"/>
+         *   </error>
+         * </iq>
+         *
+         * An empty JID and secondID matchs reply is:
+         * <iq type="error" id="purple343f3f96">
+         *   <error type="cancel">
+         *     <not-acceptable xmlns="jabber:join:2nd_device"/>
+         *   </error>
+         * </iq>
+         */
+        if (isValidCheck2ndDevicePacket(packet, read, processed)) {
+            String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
+            String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
+            String jid = null;
+
+            if (uri.equals("jabber:join:2nd_device") && qualifiedname.equals("query")) {
+                
+                //Get the id and password fields
+                String id = ((IQ) packet).getChildElement().element("id").getStringValue();
+                String password = ((IQ) packet).getChildElement().element("password").getStringValue();
+
+                Log.warn("Just got a 2nd device registration IQ with username " + id + " and password " + password);
+                
+                try {
+                    jid = sujMessageHandler.getSecondDeviceJID(id, password);
+                } catch (Exception ie) {
+                    if (Log.isDebugEnabled()) {
+                        Log.warn("Problem on request: " + ie.toString());
+                    }
+                }
+
+                // Build reply
+                IQ replyPacket = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
+
+                if (jid == null) {
+                    ((IQ) replyPacket).setType(IQ.Type.error);
+                    ((IQ) replyPacket).getElement().addElement("error").addAttribute("type", "cancel").addElement("not-acceptable").addNamespace("", "urn:ietf:params:xml:ns:xmpp-stanzas");
+                }
+                else if (jid == "invalid username or password") {
+                    ((IQ) replyPacket).setType(IQ.Type.error);
+                    ((IQ) replyPacket).getElement().addElement("error").addAttribute("type", "cancel").addElement("not-allowed").addNamespace("", "urn:ietf:params:xml:ns:xmpp-stanzas");
+                }
+                else {
+                    ((IQ) replyPacket).setChildElement("query", "xmpp:join:2nd_device");
+                    ((IQ) replyPacket).getChildElement().addElement("jid").addText(jid);
+                }
+
+                Log.warn("Reply: " + replyPacket.toString());
+
+                // Send packet
+                try {
+                    iqRouter.route(replyPacket);
+                }
+                catch (Exception rf) {
+                    Log.error ("Routing failed for IQ getting 2nd device packet: " 
+                        + replyPacket.toString());
+                }
+            }
+        }
+
+        /**
+         * Handles the second device setup requests.
+         *
+         * Received message:
+         * <iq type="set" id="purple3436">
+         *   <query xmlns="jabber:join:2nd_device">
+         *     <id>username</id>
+         *     <password>drowssap</password>
+         *     <jid>aa@bbb.com<jid>
+         *   </query>
+         * </iq>
+         *
+         * On ok, send:
+         * <iq type="result" id="purple343f3f96">
+         *   <result>
+         *     ok
+         *   </result>
+         * </iq>    
+         *
+         * An empty JID and secondID matchs reply is:
+         * <iq type="error" id="purple343f3f96">
+         *   <error type="cancel">
+         *     <not-acceptable xmlns="jabber:join:2nd_device"/>
+         *   </error>
+         * </iq>         
+         */
+        if (isValidCreate2ndDevicePacket(packet, read, processed)) {
+            String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
+            String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
+
+            if (uri.equals("jabber:join:2nd_device") && qualifiedname.equals("query")) {
+                
+                //Get the id and password fields
+                String id = ((IQ) packet).getChildElement().element("id").getStringValue();
+                String password = ((IQ) packet).getChildElement().element("password").getStringValue();
+                String jid = ((IQ) packet).Element().attribute("from").getValue();
+                String query = null;
+
+                Log.warn("Just got a 2nd device registration IQ with username " + id + " password " + password + " and jid " + jid);
+                
+                try {
+                    query = sujMessageHandler.setSecondDeviceJID(id, password, jid);
+                } catch (Exception ie) {
+                    if (Log.isDebugEnabled()) {
+                        Log.warn("Problem on request: " + ie.toString());
+                    }
+                }
+
+                // Build reply
+                IQ replyPacket = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
+
+                if (query == null) {
+                    ((IQ) replyPacket).setType(IQ.Type.error);
+                    ((IQ) replyPacket).getElement().addElement("error").addAttribute("type", "cancel").addElement("conflict").addNamespace("", "urn:ietf:params:xml:ns:xmpp-stanzas");
+                }
+                else {
+                    ((IQ) replyPacket).setChildElement("query", "xmpp:join:2nd_device");
+                }
+
+                Log.warn("Reply: " + replyPacket.toString());
+
+                // Send packet
+                try {
+                    iqRouter.route(replyPacket);
+                }
+                catch (Exception rf) {
+                    Log.error ("Routing failed for IQ setting 2nd device packet: " 
+                        + replyPacket.toString());
+                }
+            }
+        }
     }
 
     /**
@@ -546,8 +725,6 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 && read
                 && packet instanceof IQ
                 && ((IQ)packet).getType().equals(IQ.Type.get);
-                //&& packet.getType() == IQ.Type.get;
-                //&& packet.isRequest();
     }
 
     private boolean isValidRegisterPacket(Packet packet, boolean read, boolean processed) {
@@ -556,7 +733,6 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 && read
                 && packet instanceof IQ
                 && ((IQ)packet).getType().equals(IQ.Type.set);
-                //&& packet.isRequest();
     }
 
     private boolean isValidOutOfMUCPacket(Packet packet, boolean read, boolean processed) {
@@ -565,7 +741,21 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 && read
                 && packet instanceof Message
                 && ((Message)packet).getType().equals(Message.Type.groupchat);
-                //&& packet.Type == IQ.Type.get;
-                //&& packet.isRequest();
+    }
+
+    private boolean isValidCheck2ndDevicePacket(Packet packet, boolean read, boolean processed) {
+        return  secondDeviceHandlerEnabled
+                && !processed
+                && read
+                && packet instanceof IQ
+                && ((IQ)packet).getType().equals(IQ.Type.get);
+    }
+
+    private boolean isValidCreate2ndDevicePacket(Packet packet, boolean read, boolean processed) {
+        return  secondDeviceHandlerEnabled
+                && !processed
+                && read
+                && packet instanceof IQ
+                && ((IQ)packet).getType().equals(IQ.Type.set);
     }
 }

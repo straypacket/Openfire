@@ -62,6 +62,10 @@ public class SUJMessageHandler {
 
     private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive INNER JOIN (SELECT conversationID FROM ofConversation WHERE room=?) as t1 ON ofMessageArchive.conversationID=t1.conversationID AND sentDate>=?";
 
+    private static final String RETRIEVE_SECOND_DEVICE_JID = "SELECT jid from ofSecondDevice WHERE secondID=? AND secondPass=?";
+
+    private static final String STORE_SECOND_DEVICE_JID = "INSERT INTO ofSecondDevice (secondID, secondPass, jid) VALUES (?,?,?) ON DUPLICATE KEY UPDATE jid=VALUES(jid), secondPass=VALUES(secondPass), secondID=VALUES(secondID)";
+
     /**
      * A default instance will allow all message content.
      *
@@ -171,4 +175,65 @@ public class SUJMessageHandler {
             return false;
         }
     }
+
+    /**
+     * Sets the JID for the second device
+     *
+     */
+    public String setSecondDeviceJID(String user, String pass, String jid) {
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        String queryResult = null;
+
+        try {
+            con = DbConnectionManager.getConnection();
+            pstmt = con.prepareStatement(STORE_SECOND_DEVICE_JID);
+            pstmt.setString(1, user);
+            pstmt.setString(2, pass);
+            pstmt.setString(3, jid);
+
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                queryResult = rs.getString(1);
+            }
+        } catch (SQLException sqle) {
+            Log.error(sqle.getMessage(), sqle);
+        } finally {
+            DbConnectionManager.closeConnection(rs, pstmt, con);
+        }
+        return queryResult;
+    }
+
+    /**
+     * Returns the JID for the second device that have been archived to the database.
+     *
+     */
+    public String getSecondDeviceJID(String user, String pass) {
+        String jid = null;
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try {
+            con = DbConnectionManager.getConnection();
+            pstmt = con.prepareStatement(RETRIEVE_SECOND_DEVICE_JID);
+            pstmt.setString(1, user);
+            pstmt.setString(2, pass);
+
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                jid = rs.getString(1);
+            }
+            else{
+                jid = "invalid username or password";
+            }
+        } catch (SQLException sqle) {
+            Log.error(sqle.getMessage(), sqle);
+        } finally {
+            DbConnectionManager.closeConnection(rs, pstmt, con);
+        }
+        return jid;
+    }
 }
+
