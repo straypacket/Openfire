@@ -225,22 +225,22 @@ public class SUJoinServlet extends HttpServlet {
             }
         }
         catch (UserAlreadyExistsException e) {
-            replyError("UserAlreadyExistsException",response, out);
+            replyError("UserAlreadyExistsException: " + e.toString(),response, out);
         }
         catch (UserNotFoundException e) {
-            replyError("UserNotFoundException",response, out);
+            replyError("UserNotFoundException: " + e.toString(),response, out);
         }
         catch (IllegalArgumentException e) {
-            replyError("IllegalArgumentException",response, out);
+            replyError("IllegalArgumentException: " + e.toString(),response, out);
         }
         catch (SharedGroupException e) {
-        	replyError("SharedGroupException",response, out);
+        	replyError("SharedGroupException: " + e.toString(),response, out);
         }
         catch (GroupNotFoundException e) {
-            replyError("GroupNotFoundException", response, out);
+            replyError("GroupNotFoundException: " + e.toString(), response, out);
         }
         catch (ConflictException e) {
-            replyError("ConflictException", response, out);
+            replyError("ConflictException: " + e.toString(), response, out);
         }
         catch (SQLException sqle) {
             replyError("SQLException: " + sqle.getMessage(),response, out);

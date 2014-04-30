@@ -221,10 +221,12 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
                 JID tenantJID = server.createJID(tenantUser, null);
 
                 // Add user to newly created user roster
-                newUserRoster.createRosterItem(tenantJID, true, true);
+                //newUserRoster.createRosterItem(tenantJID, true, true);
+                addRosterItem(username, tenantJID.toString(), username, "3", "");
 
                 // Add newly create user to existing user roster
-                tenantRoster.createRosterItem(newUserJID, true, true);
+                //tenantRoster.createRosterItem(newUserJID, true, true);
+                addRosterItem(tenantUser, newUserJID.toString(), tenantUser, "3", "");
             }
 
         } finally {
@@ -455,14 +457,6 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         getUser(username);
         Roster r = rosterManager.getRoster(username);
         JID j = new JID(itemJID);
-
-        try {
-            r.getRosterItem(j);
-            throw new UserAlreadyExistsException(j.toBareJID());
-        }
-        catch (UserNotFoundException e) {
-            //Roster item does not exist. Try to add it.
-        }
 
         if (r != null) {
             List<String> tenants = new ArrayList<String>();
