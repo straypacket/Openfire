@@ -220,10 +220,10 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
                 JID tenantJID = server.createJID(tenantUser, null);
 
                 // Add user to newly created user roster
-                newUserRoster.createRosterItem(newUserJID, true, true);
+                newUserRoster.createRosterItem(tenantJID, true, true);
 
                 // Add newly create user to existing user roster
-                tenantRoster.createRosterItem(tenantJID, true, true);
+                tenantRoster.createRosterItem(newUserJID, true, true);
             }
 
         } finally {
