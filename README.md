@@ -116,26 +116,32 @@ Roster management parameters:
 **API example calls:**
 
 User creation
+
 ```
 wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=add_user&secret=pCdk7C26&username=pratchett&password=ankmorpork&usercode=u1&tenantcode=t1&deptcode=d1&groupcode=g1&phone=123123123&pre_register=yes&devices=device1,device2,device3" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
+
 ```
 
 User edition:
+
 ```
 wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=edit_user&secret=pCdk7C26&username=pratchett&password=ankmorpork&usercode=u1&tenantcode=t1&deptcode=d1&groupcode=g1&phone=123123123&pre_register=yes&devices=device1,device2" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
 ```
 
 User deletion:
+
 ```
 wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=delete_user&secret=pCdk7C26&username=pratchett" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
 ```
 
 Get all users:
+
 ```
 wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=get_all_users&secret=pCdk7C26" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
 ```
 
 Search for user:
+
 ```
 wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=search_user&secret=pCdk7C26&username=kafka" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
 ```
