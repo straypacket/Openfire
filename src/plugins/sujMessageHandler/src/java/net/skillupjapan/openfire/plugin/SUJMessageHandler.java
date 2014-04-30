@@ -64,7 +64,7 @@ public class SUJMessageHandler {
 
     private static final String RETRIEVE_SECOND_DEVICE_JID = "SELECT jid from ofSecondDevice WHERE secondID=? AND secondPass=?";
 
-    private static final String STORE_SECOND_DEVICE_JID = "INSERT INTO ofSecondDevice (secondID, secondPass, jid) VALUES (?,?,?) ON DUPLICATE KEY UPDATE jid=VALUES(jid), secondPass=VALUES(secondPass), secondID=VALUES(secondID)";
+    private static final String STORE_SECOND_DEVICE_JID = "INSERT INTO ofSecondDevice (secondID, secondPass, jid) VALUES (?,?,?) ON DUPLICATE KEY UPDATE jid=VALUES(jid)";
 
     /**
      * A default instance will allow all message content.

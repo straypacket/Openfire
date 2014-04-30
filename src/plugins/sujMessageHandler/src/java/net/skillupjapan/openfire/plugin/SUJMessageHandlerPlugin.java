@@ -627,9 +627,6 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                     }
                 }
 
-                //Get local session
-                //LocalClientSession session = (LocalClientSession) sessionManager.getSession(new JID(jid));
-
                 // Build reply
                 IQ replyPacket = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
                 //replyPacket.setTo((JID)null);
@@ -690,7 +687,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
             String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
 
-            if (uri.equals("xmpp:join:2nd_device") && qualifiedname.equals("query")) {
+            if (uri.equals("xmpp:join:2nd_device") && qualifiedname.equals("query") && session.getStatus() == 3) {
                 
                 //Get the id and password fields
                 String id = ((IQ) packet).getChildElement().element("id").getStringValue();
