@@ -39,6 +39,7 @@ import org.jivesoftware.openfire.lockout.LockOutManager;
 import org.jivesoftware.openfire.roster.Roster;
 import org.jivesoftware.openfire.roster.RosterItem;
 import org.jivesoftware.openfire.roster.RosterManager;
+import org.jivesoftware.openfire.roster.RosterItem;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserManager;
@@ -288,7 +289,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
                 JID tenantJID = server.createJID(tenantUser, null);
 
                 // Remove user from tenant roster
-                tenantRoster.deleteRosterItem(tenantJID, true);
+                tenantRoster.deleteRosterItem(newUserJID, true);
             }
 
         } finally {
