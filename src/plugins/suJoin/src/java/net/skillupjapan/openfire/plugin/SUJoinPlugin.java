@@ -43,11 +43,25 @@ import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.openfire.user.UserNotFoundException;
+import org.jivesoftware.openfire.muc.ConflictException;
+import org.jivesoftware.openfire.muc.MultiUserChatService;
+import org.jivesoftware.openfire.muc.MultiUserChatManager;
 import org.jivesoftware.util.JiveGlobals;
 import org.jivesoftware.util.PropertyEventDispatcher;
 import org.jivesoftware.util.PropertyEventListener;
 import org.jivesoftware.util.StringUtils;
+import org.jivesoftware.util.Log;
+import org.jivesoftware.database.DbConnectionManager;
+
 import org.xmpp.packet.JID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Plugin that allows the administration of users via HTTP requests.
@@ -55,18 +69,34 @@ import org.xmpp.packet.JID;
  * @author Justin Hunt, Daniel Pereira
  */
 public class SUJoinPlugin implements Plugin, PropertyEventListener {
+
+    private static final Logger Log = LoggerFactory.getLogger(SUJoinPlugin.class);
+
     private UserManager userManager;
     private RosterManager rosterManager;
     private XMPPServer server;
+    private MultiUserChatManager mucManager;
+    private MultiUserChatService mucService;
 
     private String secret;
     private boolean enabled;
     private Collection<String> allowedIPs;
 
+    private static final String ADD_USER = "INSERT INTO ofUserMetadata (user_code, group_code, tenant_code, user_name, dept_code, phone, pre_register, joined) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE user_code=VALUES(user_code)";
+    private static final String GET_USER = "SELECT user_code, tenant_code, user_name, dept_code, phone, pre_register, joined FROM ofUserMetadata WHERE user_jid LIKE ?";
+    private static final String DELETE_USER = "DELETE FROM ofUserMetadata WHERE user_name=?";
+    private static final String ADD_USER_DEVICE = "INSERT INTO ofUserDevices (username, device) VALUES (?,?)";
+    private static final String REMOVE_USER_DEVICES = "DELETE FROM ofUserDevices WHERE username=?";
+    private static final String USERS_BY_TENANT = "SELECT user_name FROM ofUserMetadata WHERE tenant_code=?";
+
+    private static final String ADD_GROUP = "INSERT INTO ofGroupMetadata (group_code, muc_jid) VALUES (?,?)";
+
     public void initializePlugin(PluginManager manager, File pluginDirectory) {
         server = XMPPServer.getInstance();
         userManager = server.getUserManager();
         rosterManager = server.getRosterManager();
+        mucManager = server.getMultiUserChatManager();
+        mucService = mucManager.getMultiUserChatService("conference"); 
 
         secret = JiveGlobals.getProperty("plugin.sujoin.secret", "");
         // If no secret key has been assigned to the user service yet, assign a random one.
@@ -91,46 +121,192 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         PropertyEventDispatcher.removeListener(this);
     }
 
-    public void createUser(String username, String password, String name, String email, String tenantNames)
-            throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException
+    /*
+     *
+     */
+    public void editUser(String username, String password, String name, String email, String tenantNames, String devices,
+        String user_code, String group_code, String tenant_code, String dept_code, String phone, String pre_register)
+            throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException, SQLException
     {
-        userManager.createUser(username, password, name, email);
-        userManager.getUser(username);
+        Connection con = null;
+        PreparedStatement pstmt = null;
 
-        if (tenantNames != null) {
-            Collection<Group> tenants = new ArrayList<Group>();
-            StringTokenizer tkn = new StringTokenizer(tenantNames, ",");
+        try {
+            con = DbConnectionManager.getConnection();
 
-            while (tkn.hasMoreTokens())
-            {
-				String tenantName = tkn.nextToken();
-				Group tenant = null;
+            pstmt = con.prepareStatement(REMOVE_USER_DEVICES);
+            pstmt.setString(1, username);
 
-                try {
-                    GroupManager.getInstance().getGroup(tenantName);
-                } catch (GroupNotFoundException e) {
-                    // Create this tenant
-					GroupManager.getInstance().createGroup(tenantName);
-                }
-				tenant = GroupManager.getInstance().getGroup(tenantName);
-				tenant.getProperties().put("sharedRoster.showInRoster", "onlyGroup");
-				tenant.getProperties().put("sharedRoster.displayName", tenantName);
-				tenant.getProperties().put("sharedRoster.groupList", "");
-
-                tenants.add(tenant);
-            }
-            for (Group tenant : tenants) {
-                tenant.getMembers().add(server.createJID(username, null));
-            }
+            Log.warn("REMOVE_USER_DEVICES query: " + pstmt);
+            pstmt.executeUpdate();
+        } finally {
+            DbConnectionManager.closeConnection(con);
         }
+
+        // Update the user, since it has an ON CONFLICT clause
+        createUser(username, password, name, email, tenantNames, devices, user_code, group_code, tenant_code, dept_code, phone, pre_register, true);
     }
 
-    public void deleteUser(String username) throws UserNotFoundException, SharedGroupException
+    /**
+     * Creates a new user
+     *
+     * @param username - the username of the local user to delete.
+     * @param update - this flag is used to differentiate from update to create
+     *
+     */
+    public void createUser(String username, String password, String name, String email, String tenantNames, String devices,
+        String user_code, String group_code, String tenant_code, String dept_code, String phone, String pre_register, Boolean update)
+            throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException, SQLException
+    {
+        if (!update){
+            userManager.createUser(username, password, name, email);
+            userManager.getUser(username);
+        }
+
+        // Begin JOIN Metadata
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+        ResultSet rs = null;
+
+        try {
+            con = DbConnectionManager.getConnection();
+            pstmt = con.prepareStatement(ADD_USER);
+            pstmt.setString(1, user_code);
+            pstmt.setString(2, group_code);
+            pstmt.setString(3, tenant_code);
+            pstmt.setString(4, username);
+            pstmt.setString(5, dept_code);
+            pstmt.setString(6, phone);
+            pstmt.setString(7, pre_register);
+            pstmt.setString(8, "no");
+
+            Log.warn("ADD_USER query: " + pstmt);
+            pstmt.executeUpdate();
+
+            if (devices != null) {
+                StringTokenizer tkn = new StringTokenizer(devices, ",");
+
+                while (tkn.hasMoreTokens())
+                {
+                    String device = tkn.nextToken();
+
+                    pstmt1 = con.prepareStatement(ADD_USER_DEVICE);
+                    pstmt1.setString(1, username);
+                    pstmt1.setString(2, device);
+
+                    Log.warn("ADD_USER_DEVICE query: " + pstmt1);
+                    pstmt1.executeUpdate();
+                }
+            }
+
+        } finally {
+            DbConnectionManager.closeConnection(con);
+        }
+
+        // TO DO:
+        // - Add all users with the same tenant_id to the user roster
+        // - Add user to other users roster with the same tenant_id
+    }
+
+    /**
+     * Deletes a given username
+     *
+     * @param username the username of the local user to delete.
+     * @throws UserNotFoundException if the requested user
+     *         does not exist in the local server.
+     * @throws SharedGroupException
+     * @throws SQLException if the SQL query user fails
+     */
+    public void deleteUser(String username) throws UserNotFoundException, SharedGroupException, SQLException
     {
         User user = getUser(username);
         userManager.deleteUser(user);
 
 		rosterManager.deleteRoster(server.createJID(username, null));
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+
+        try {
+            con = DbConnectionManager.getConnection();
+            pstmt = con.prepareStatement(DELETE_USER);
+            pstmt.setString(1, username);
+
+            Log.warn("DELETE_USER query: " + pstmt);
+            pstmt.executeUpdate();
+
+            pstmt1 = con.prepareStatement(REMOVE_USER_DEVICES);
+            pstmt1.setString(1, username);
+
+            Log.warn("REMOVE_USER_DEVICES query: " + pstmt1);
+            pstmt1.executeUpdate();
+        } finally {
+            DbConnectionManager.closeConnection(con);
+        }
+
+        // TO DO:
+        // - Remove user to other users roster with the same tenant_id
+    }
+
+    /**
+     * Returns all users
+     *
+     * @param None
+     */
+    public String getAllUsers()
+    {
+        String result = "users=";
+
+        Collection<User>users = userManager.getUsers();
+        for (User user: users) {
+            result += user.getUsername() + ",";
+        }
+
+        return result;
+    }
+
+    /**
+     * Search a given username
+     *
+     * @param username the username of the local user to disable.
+     * @throws UserNotFoundException if the requested user
+     *         does not exist in the local server.
+     * @throws SQLException if the SQL query user fails
+     */
+    public String searchUser(String username) throws UserNotFoundException, SQLException
+    {
+        User user = getUser(username);
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        String result = "";
+
+        result += "name=" + user.getName();
+        result += ";email=" + user.getEmail();
+        result += ";create_date=" + user.getCreationDate().toString();
+        result += ";user_jid=" + server.createJID(username, null).toString();
+
+        try {
+            con = DbConnectionManager.getConnection();
+            pstmt = con.prepareStatement(GET_USER);
+            pstmt.setString(1, "%"+username+"%");
+
+            Log.warn("GET_USER query: " + pstmt);
+
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                //user_code, tenant_code, user_name, dept_code, phone, pre_register, joined
+                result += ";tenant_code=" + rs.getString(2) + ";user_code=" + rs.getString(1) + ";dept_code=" + rs.getString(4) + ";username=" + rs.getString(3);
+                result += ";phone=" + rs.getString(5) + ";pre_register=" + rs.getString(6) + ";not_joined=" + rs.getString(7);
+            }
+
+        } finally {
+            DbConnectionManager.closeConnection(rs, pstmt, con);
+        }
+
+        return result;
     }
 
     /**
@@ -362,6 +538,29 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
                 t.setDescription(description);
             }
         }
+    }
+
+    /**
+     * Search a given MUC
+     *
+     * @param muc the MUC of the server.
+     * @throws MUCNotFoundException if the requested MUC
+     *         does not exist in the local server.
+     */
+    public void searchMUCs() throws ConflictException
+    {
+        //User user = getUser(username);
+        //LockOutManager.getInstance().disableAccount(username, null, null);
+    }
+
+    /**
+     * Returns all MUCs 
+     *
+     */
+    public void getAllMUCs()
+    {
+        //User user = getUser(username);
+        //LockOutManager.getInstance().disableAccount(username, null, null);
     }
 
     /**

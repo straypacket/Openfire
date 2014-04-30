@@ -191,16 +191,18 @@ User metadata table:
 
 The column `user_jid` connects with Openfire world.
 
+`creation_date`, `name` and `email` is in the Openfire side.
+
 ```
 CREATE TABLE ofUserMetadata (
 	user_code VARCHAR(64) NOT NULL,
-	user_jid VARCHAR(256) NOT NULL,
-	tenant_code VARCHAR(64), 
-	user_name VARCHAR(64), 
+	group_code VARCHAR(256) NOT NULL,
+	tenant_code VARCHAR(64) NOT NULL, 
+	user_name VARCHAR(64) NOT NULL, 
 	dept_code VARCHAR(64), 
 	phone VARCHAR(64),
-	create_date VARCHAR(64), 
 	pre_register VARCHAR(64),
+	joined VARCHAR(64),
 	PRIMARY KEY (user_code)
 );
 ```
@@ -208,12 +210,11 @@ CREATE TABLE ofUserMetadata (
 | Field        | Type         | Null | Key | Default | Extra |
 |--------------|--------------|------|-----|---------|-------|
 | user_code    | varchar(64)  | NO   | PRI | NULL    |       |
-| user_jid     | varchar(256) | YES  |     | NULL    |       |
-| tenant_code  | varchar(64)  | YES  |     | NULL    |       |
-| user_name    | varchar(64)  | YES  |     | NULL    |       |
+| group_code   | varchar(256) | NO   |     | NULL    |       |
+| tenant_code  | varchar(64)  | NO   |     | NULL    |       |
+| user_name    | varchar(64)  | NO   |     | NULL    |       |
 | dept_code    | varchar(64)  | YES  |     | NULL    |       |
 | phone        | varchar(64)  | YES  |     | NULL    |       |
-| create_date  | varchar(64)  | YES  |     | NULL    |       |
 | pre_register | varchar(64)  | YES  |     | NULL    |       |
 | joined       | tinyint(1)   | YES  |     | NULL    |       |
 
@@ -222,16 +223,15 @@ User devices table:
 
 ```
 CREATE TABLE ofUserDevices (
-	user_code VARCHAR(64) NOT NULL, 
-	device VARCHAR(256), 
-	PRIMARY KEY (user_code)
+	username VARCHAR(64) NOT NULL, 
+	device VARCHAR(256) NOT NULL
 );
 ```
 
 | Field     | Type         | Null | Key | Default | Extra |
 |-----------|--------------|------|-----|---------|-------|
-| user_code | varchar(64)  | NO   | PRI | NULL    |       |
-| device    | varchar(256) | YES  |     | NULL    |       |
+| username  | varchar(64)  | NO   |     | NULL    |       |
+| device    | varchar(256) | NO   |     | NULL    |       |
 
 **Group tables**
 
@@ -243,15 +243,17 @@ Owner, name and users are already included in Openfire.
 ```
 CREATE TABLE ofGroupMetadata (
 	group_code VARCHAR(64),
+	tenant_code VARCHAR(64),
 	muc_jid VARCHAR(256),
 	PRIMARY KEY (group_code)
 );
 ```
 
-| Field      | Type         | Null | Key | Default | Extra |
-|------------|--------------|------|-----|---------|-------|
-| group_code | varchar(64)  | NO   | PRI |         |       |
-| muc_jid    | varchar(256) | YES  |     | NULL    |       |
+| Field       | Type         | Null | Key | Default | Extra |
+|-------------|--------------|------|-----|---------|-------|
+| group_code  | varchar(64)  | NO   | PRI |         |       |
+| tenant_code | varchar(64)  | NO   |     |         |       |
+| muc_jid     | varchar(256) | YES  |     | NULL    |       |
 
 
 About

@@ -30,6 +30,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.sql.SQLException;
 
 import org.jivesoftware.admin.AuthCheckFilter;
 import org.jivesoftware.openfire.SharedGroupException;
@@ -38,9 +39,12 @@ import net.skillupjapan.openfire.plugin.SUJoinPlugin;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserNotFoundException;
 import org.jivesoftware.openfire.group.GroupNotFoundException;
+import org.jivesoftware.openfire.muc.ConflictException;
 import org.jivesoftware.util.Log;
 import org.xmpp.packet.JID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Servlet that addition/deletion/modification of the users info in the system.
@@ -57,7 +61,7 @@ import org.xmpp.packet.JID;
 public class SUJoinServlet extends HttpServlet {
 
     private SUJoinPlugin plugin;
-
+    private static final Logger Log = LoggerFactory.getLogger(SUJoinServlet.class);
 
     @Override
 	public void init(ServletConfig servletConfig) throws ServletException {
@@ -94,13 +98,29 @@ public class SUJoinServlet extends HttpServlet {
             }
         }
 
+        /**
+         * API parameters
+         */
+        String secret = request.getParameter("secret");
+        /**
+         * User parameters
+         */
         String username = request.getParameter("username");
         String password = request.getParameter("password");
+        String user_code = request.getParameter("usercode");
+        String tenant_code = request.getParameter("tenantcode");
+        String dept_code = request.getParameter("deptcode");
+        String group_code = request.getParameter("groupcode");
+        String phone = request.getParameter("phone");
+        String pre_register = request.getParameter("pre_register");
+        String devices = request.getParameter("devices");
+
+        //username=pratchett&password=ankmorpork&usercode=u1&tenantcode=t1&deptcode=d1&groupcode=g1&phone=123123123&pre_register=yes&devices=device1,device2,device3
+
         String name = request.getParameter("name");
         String desc = request.getParameter("description");
         String email = request.getParameter("email");
         String type = request.getParameter("type");
-        String secret = request.getParameter("secret");
         String tenantNames = request.getParameter("tenants");
         String tenant = request.getParameter("tenant");
         String item_jid = request.getParameter("item_jid");
@@ -123,7 +143,7 @@ public class SUJoinServlet extends HttpServlet {
          }
 
         // Some checking is required on the username
-        if (username == null){
+        if (username == null && !type.equals("get_all_users") && !type.equals("delete_group") && !type.equals("get_all_groups") && !type.equals("get_all_groups") ){
             replyError("IllegalArgumentException",response, out);
             return;
         }
@@ -137,54 +157,66 @@ public class SUJoinServlet extends HttpServlet {
 
         // Check the request type and process accordingly
         try {
-            username = username.trim().toLowerCase();
-            username = JID.escapeNode(username);
-            username = Stringprep.nodeprep(username);
-            if ("add".equals(type)) {
-                plugin.createUser(username, password, name, email, tenantNames);
+            if (username != null) {
+                username = username.trim().toLowerCase();
+                username = JID.escapeNode(username);
+                username = Stringprep.nodeprep(username);
+            }
+            /**
+             * User management
+             */
+            if ("add_user".equals(type)) {
+                plugin.createUser(username, password, name, email, tenantNames, devices, user_code, group_code, tenant_code, dept_code, phone, pre_register, false);
                 replyMessage("ok",response, out);
                 //imageProvider.sendInfo(request, response, presence);
             }
-            else if ("delete".equals(type)) {
+            else if ("delete_user".equals(type)) {
                 plugin.deleteUser(username);
                 replyMessage("ok",response,out);
                 //xmlProvider.sendInfo(request, response, presence);
             }
-            else if ("enable".equals(type)) {
+            else if ("enable_user".equals(type)) {
                 plugin.enableUser(username);
                 replyMessage("ok",response,out);
             }
-            else if ("disable".equals(type)) {
+            else if ("disable_user".equals(type)) {
                 plugin.disableUser(username);
                 replyMessage("ok",response,out);
             }
-            else if ("update".equals(type)) {
-                plugin.updateUser(username, password,name,email, tenantNames);
+            else if ("edit_user".equals(type)) {
+                plugin.editUser(username, password, name, email, tenantNames, devices, user_code, group_code, tenant_code, dept_code, phone, pre_register);
                 replyMessage("ok",response,out);
+            }
+            else if ("search_user".equals(type)) {
+                String result = plugin.searchUser(username);
+                replyMessage(result,response,out);
                 //xmlProvider.sendInfo(request, response, presence);
             }
-            else if ("add_roster".equals(type)) {
+            else if ("get_all_users".equals(type)) {
+                String result = plugin.getAllUsers();
+                replyMessage(result,response,out);
+            }
+            /**
+             * MUC management
+             */
+            else if ("add_group".equals(type)) {
                 plugin.addRosterItem(username, item_jid, name, sub, tenantNames);
                 replyMessage("ok",response, out);
             }
-            else if ("update_roster".equals(type)) {
+            else if ("edit_group".equals(type)) {
                 plugin.updateRosterItem(username, item_jid, name, sub, tenantNames);
                 replyMessage("ok",response, out);
             }
-            else if ("delete_roster".equals(type)) {
+            else if ("delete_group".equals(type)) {
                 plugin.deleteRosterItem(username, item_jid);
                 replyMessage("ok",response, out);
             }
-            else if ("add_tenant".equals(type)) {
-                plugin.addTenantItem(tenant);
+            else if ("get_all_groups".equals(type)) {
+                plugin.getAllMUCs();
                 replyMessage("ok",response, out);
             }
-            else if ("remove_tenant".equals(type)) {
-                plugin.removeTenantItem(tenant);
-                replyMessage("ok",response, out);
-            }
-            else if ("update_tenant".equals(type)) {
-                plugin.updateTenantItem(tenant, name, desc);
+            else if ("search_group".equals(type)) {
+                plugin.searchMUCs();
                 replyMessage("ok",response, out);
             }
             else {
@@ -207,8 +239,14 @@ public class SUJoinServlet extends HttpServlet {
         catch (GroupNotFoundException e) {
             replyError("GroupNotFoundException", response, out);
         }
+        catch (ConflictException e) {
+            replyError("ConflictException", response, out);
+        }
+        catch (SQLException sqle) {
+            replyError("SQLException: " + sqle.getMessage(),response, out);
+        }
         catch (Exception e) {
-            replyError(e.toString(),response, out);
+            replyError("Exception: " + e.toString(),response, out);
         }
     }
 
