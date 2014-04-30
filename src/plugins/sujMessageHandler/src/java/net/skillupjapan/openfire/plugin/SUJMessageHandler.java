@@ -60,7 +60,7 @@ public class SUJMessageHandler {
 
     private static final Logger Log = LoggerFactory.getLogger(SUJMessageHandler.class);
 
-    private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive INNER JOIN (SELECT conversationID FROM ofConversation WHERE room=?) as t1 ON ofMessageArchive.conversationID=t1.conversationID AND sentDate>=?";
+    private static final String MESSAGE_COUNT = "SELECT COUNT(*) FROM ofMessageArchive INNER JOIN (SELECT conversationID FROM ofConversation WHERE room=?) as t1 ON ofMessageArchive.conversationID=t1.conversationID AND sentDate>? AND fromJID!=?";
 
     private static final String RETRIEVE_SECOND_DEVICE_JID = "SELECT jid from ofSecondDevice WHERE secondID=? AND secondPass=?";
 
@@ -96,7 +96,7 @@ public class SUJMessageHandler {
      * 
      * @return the total number of archived messages.
      */
-    public int getArchivedMessageCount(String chatgroup, String date) {
+    public int getArchivedMessageCount(String chatgroup, String date, String jid) {
         int messageCount = 0;
         Connection con = null;
         PreparedStatement pstmt = null;
@@ -111,12 +111,20 @@ public class SUJMessageHandler {
                 pstmt.setLong(2, 0);
             }
             else{
-                pstmt.setLong(2, rd.parseString(date).getTime());
+                // Adding half a second buffer to smooth differences between write times in the DB tables
+                pstmt.setLong(2, rd.parseString(date).getTime()+500);
             }
+            pstmt.setString(3, jid);
+
+            Log.warn("Query: " + pstmt.toString());
+
             rs = pstmt.executeQuery();
             if (rs.next()) {
                 messageCount = rs.getInt(1);
             }
+
+            Log.warn("Resulting count: " + messageCount);
+
         } catch (SQLException sqle) {
             Log.error(sqle.getMessage(), sqle);
         } catch (ParseException pd) {

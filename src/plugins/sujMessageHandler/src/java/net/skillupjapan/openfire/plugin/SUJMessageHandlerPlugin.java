@@ -45,6 +45,10 @@ import org.jivesoftware.openfire.PresenceManager;
 import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.util.JiveGlobals;
+import org.jivesoftware.openfire.handler.IQHandler;
+import org.jivesoftware.openfire.IQHandlerInfo;
+import org.jivesoftware.openfire.SessionManager;
+import org.jivesoftware.openfire.session.LocalClientSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,9 +122,19 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
     private UserManager userManager;
 
     /**
+     * the hook used for the session manager
+     */
+    private SessionManager sessionManager;
+
+    /**
      * the hook used to handle groups
      */
     private  MultiUserChatService mucService;
+
+    /**
+     * the hook used to handle groups
+     */
+    private  MultiUserChatService mucServicePrivate;
 
     /**
      * used to send messages
@@ -178,13 +192,17 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
         mucManager = XMPPServer.getInstance().getMultiUserChatManager();
         presenceManager = XMPPServer.getInstance().getPresenceManager();
         userManager = XMPPServer.getInstance().getUserManager();
+        sessionManager = XMPPServer.getInstance().getSessionManager();
 
         messageRouter = XMPPServer.getInstance().getMessageRouter();
         iqRouter = XMPPServer.getInstance().getIQRouter();
         mucService = mucManager.getMultiUserChatService("conference");
+        mucServicePrivate = mucManager.getMultiUserChatService("private");
 
         // Initialy populate the hash of rooms in the server
         makeHashByJID();
+
+        iqRouter.addHandler(new SecondDeviceIQHandler());
     }
 
     /**
@@ -368,6 +386,10 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 String qualifiedname = ((Element) child).getQualifiedName().toString();
 
                 if (uri.equals("xmpp:join:msgq") && qualifiedname.equals("query")) {
+                    Log.warn("MSGQ packet: " + packet.toString());
+
+
+                    JID from = new JID(((IQ) packet).getElement().attribute("from").getValue());
                     //Get the fields we are interested in (all the "room" requests)
                     List children = ((IQ) packet).getChildElement().elements("room");
                     if (!children.isEmpty()) {
@@ -385,7 +407,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                             cur = (Element) fieldElems.next();
                             qroom = cur.attribute("room_jid").getValue();
                             qdate = cur.attribute("since").getValue();
-                            rescount = sujMessageHandler.getArchivedMessageCount(qroom, qdate);
+                            rescount = sujMessageHandler.getArchivedMessageCount(qroom, qdate, from.toBareJID());
 
                             // Choo choo, makes the train
                             ((IQ) reply).getChildElement().addElement("room").addAttribute("room_jid",qroom).addElement("msg_count").addText(Integer.toString(rescount));
@@ -501,43 +523,49 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
             if (room == null) {
                 makeHashByJID();
                 room = rooms.get(new JID(packet.getElement().attribute("to").getValue()));
+            }
 
-                Iterator room_users = room.getMembers().iterator();
-                JID user;
-                while (room_users.hasNext()){
-                    user = (JID) room_users.next();
-                    MUCRole role = room.getOccupantByFullJID(user);
+            if (room != null) {
+                if (room.getMembers() != null ) {
+                    if (!room.getMembers().isEmpty()) {
+                        Iterator room_users = room.getMembers().iterator();
+                        JID user;
+                        while (room_users.hasNext()){
+                            user = (JID) room_users.next();
+                            MUCRole role = room.getOccupantByFullJID(user);
 
-                    // User not in chatroom
-                    if (role == null){
-                        if (Log.isDebugEnabled()) {
-                            Log.warn("User " + user.toString() + " not in chatroom!");
-                        }
-                        try {
-                            // If user is online still send the message (soft-forward)
-                            if (presenceManager.isAvailable(userManager.getUser(user.getNode()))) {
+                            // User not in chatroom
+                            if (role == null){
                                 if (Log.isDebugEnabled()) {
-                                    Log.warn("Forwarding message to user " + user.toString() );
+                                    Log.warn("User " + user.toString() + " not in chatroom!");
                                 }
-                                Message forwardMsg = (Message) packet.createCopy();
-                                forwardMsg.setFrom(new JID(packet.getElement().attribute("to").getValue()));
-                                forwardMsg.setTo(user);
-                                forwardMsg.getElement().addAttribute("forwarded","1");
-                                messageRouter.route(forwardMsg);
-                            }
-                            else {
-                                // If push notifications are enabled
-                                if (offlineMucHandlerEnabled) {
-                                    // Send push notification to user, call you favouritest APN
-                                    // ... Good luck! :D
-                                    if (Log.isDebugEnabled()) {
-                                        Log.warn("Sending push notification to user " + user.toString() );
+                                try {
+                                    // If user is online still send the message (soft-forward)
+                                    if (presenceManager.isAvailable(userManager.getUser(user.getNode()))) {
+                                        if (Log.isDebugEnabled()) {
+                                            Log.warn("Forwarding message to user " + user.toString() );
+                                        }
+                                        Message forwardMsg = (Message) packet.createCopy();
+                                        forwardMsg.setFrom(new JID(packet.getElement().attribute("to").getValue()));
+                                        forwardMsg.setTo(user);
+                                        forwardMsg.getElement().addAttribute("forwarded","1");
+                                        messageRouter.route(forwardMsg);
                                     }
-                                }
+                                    else {
+                                        // If push notifications are enabled
+                                        if (offlineMucHandlerEnabled) {
+                                            // Send push notification to user, call you favouritest APN
+                                            // ... Good luck! :D
+                                            if (Log.isDebugEnabled()) {
+                                                Log.warn("Sending push notification to user " + user.toString() );
+                                            }
+                                        }
 
+                                    }
+                                } catch(Exception e) {
+                                    Log.warn("User " + user.getNode() + " not found: " + e);
+                                }
                             }
-                        } catch(Exception e) {
-                            Log.warn("User " + user.getNode() + " not found: " + e);
                         }
                     }
                 }
@@ -588,7 +616,8 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 String id = ((IQ) packet).getChildElement().element("id").getStringValue();
                 String password = ((IQ) packet).getChildElement().element("password").getStringValue();
 
-                Log.warn("Just got a 2nd device registration IQ with username " + id + " and password " + password);
+                Log.warn("Just got a 2nd device check IQ with username " + id + " and password " + password);
+                Log.warn("Reply: " + packet.toString());
                 
                 try {
                     jid = sujMessageHandler.getSecondDeviceJID(id, password);
@@ -598,8 +627,12 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                     }
                 }
 
+                //Get local session
+                //LocalClientSession session = (LocalClientSession) sessionManager.getSession(new JID(jid));
+
                 // Build reply
                 IQ replyPacket = ((IQ) packet).createResultIQ(((IQ) packet)).createCopy();
+                //replyPacket.setTo((JID)null);
 
                 if (jid == null) {
                     ((IQ) replyPacket).setType(IQ.Type.error);
@@ -618,11 +651,11 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
 
                 // Send packet
                 try {
-                    iqRouter.route(replyPacket);
+                    //iqRouter.route(replyPacket);
+                    session.process(replyPacket);
                 }
                 catch (Exception rf) {
-                    Log.error ("Routing failed for IQ getting 2nd device packet: " 
-                        + replyPacket.toString());
+                    Log.error ("Routing failed for IQ getting 2nd device packet");
                 }
             }
         }
@@ -653,6 +686,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
          */
         if (isValidCreate2ndDevicePacket(packet, read, processed)) {
             Log.warn("Inside 2nd device SET");
+            Log.warn("WHO? " + packet.toString());
             String uri = ((IQ) packet).getChildElement().getNamespaceURI().toString();
             String qualifiedname = ((IQ) packet).getChildElement().getQualifiedName().toString();
 
@@ -686,8 +720,7 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                         iqRouter.route(replyPacket);
                     }
                     else {
-                        Log.error ("Routing failed for IQ setting 2nd device packet: " 
-                        + replyPacket.toString());
+                        Log.error ("Routing failed for IQ setting 2nd device packet: ");
                     }
 
                 } catch (Exception ie) {
@@ -704,9 +737,16 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
      */
     private void makeHashByJID() {
         Iterator mucs = mucService.getChatRooms().iterator();
+        Iterator mucsPrivate = mucServicePrivate.getChatRooms().iterator();
         MUCRoom cr;
+
         while (mucs.hasNext()) {
             cr = (MUCRoom) mucs.next();
+            rooms.put((JID) cr.getJID(), (MUCRoom) cr);
+        }
+
+        while (mucsPrivate.hasNext()) {
+            cr = (MUCRoom) mucsPrivate.next();
             rooms.put((JID) cr.getJID(), (MUCRoom) cr);
         }
     }
@@ -758,3 +798,72 @@ public class SUJMessageHandlerPlugin implements Plugin, PacketInterceptor {
                 && ((IQ)packet).getType().equals(IQ.Type.set);
     }
 }
+
+
+class SecondDeviceIQHandler extends IQHandler {
+    private static final Logger Log = LoggerFactory.getLogger(SecondDeviceIQHandler.class);
+
+    public SecondDeviceIQHandler() {
+        super(null);
+    }
+
+    public IQHandlerInfo getInfo(){
+        return new IQHandlerInfo("query", "xmpp:join:2nd_device");
+    }
+
+    public IQ handleIQ(IQ packet) {
+        Log.warn("Inside 2nd device Handler");
+
+        Log.warn("Handler packet: " + packet.toString());
+            
+        //Get the id and password fields
+        // String id = ((IQ) packet).getChildElement().element("id").getStringValue();
+        // String password = ((IQ) packet).getChildElement().element("password").getStringValue();
+        String jid = ((IQ) packet).getElement().attribute("to").getValue();
+        // int queryRes = 0;
+
+        SUJMessageHandler sujMessageHandler = new SUJMessageHandler();
+
+        Log.warn("Step 1");
+
+        LocalClientSession session = (LocalClientSession) sessionManager.getSession(packet.getTo());
+
+        Log.warn("Step 2");
+        
+        try {
+            //queryRes = sujMessageHandler.setSecondDeviceJID(id, password, jid);
+
+            Log.warn("Step 2.5");
+            // Build reply
+            IQ replyPacket = ((IQ) packet).createCopy();
+            Log.warn("Step 3");
+            //replyPacket.setTo((JID)null);
+
+            //Log.warn("Just got a 2nd device registration IQ with username " + id + " password " + password + " and jid " + jid);
+
+            // if (queryRes == 0) {
+            //     ((IQ) replyPacket).setType(IQ.Type.error);
+            //     ((IQ) replyPacket).getElement().addElement("error").addAttribute("type", "cancel").addElement("conflict").addNamespace("", "urn:ietf:params:xml:ns:xmpp-stanzas");
+            // }
+            // else {
+                 ((IQ) replyPacket).setChildElement("query", "xmpp:join:2nd_device");
+                 ((IQ) replyPacket).getElement().addAttribute("jid", jid).addElement("something").addNamespace("", "xmpp:something:sebastian");
+            // }
+
+            Log.warn("Handler reply: " + replyPacket.toString());
+
+            session.process(replyPacket);
+
+            Log.warn("Step 4");
+
+        } catch (Throwable ie) {
+            Log.warn("Problem on request: " + ie.toString());
+        }
+
+        Log.warn("Step 5");
+
+        return null;
+
+    }
+}
+
