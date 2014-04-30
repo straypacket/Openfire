@@ -233,34 +233,6 @@ CREATE TABLE ofUserDevices (
 | user_code | varchar(64)  | NO   | PRI | NULL    |       |
 | device    | varchar(256) | YES  |     | NULL    |       |
 
-
-**Tenant tables**
-
-Tenant metadata table:
-
-The column `groupName` connects with Openfire world.
-
-```
-CREATE TABLE ofTenantMetadata (
-	tenant_code VARCHAR(64) NOT NULL, 
-	groupName VARCHAR(50) NOT NULL,
-	tenant_name VARCHAR(256),
-	tenant_ID VARCHAR(64), 
-	tenant_password VARCHAR(64),
-	session_timeout VARCHAR(64),
-	PRIMARY KEY (tenant_code)
-);
-```
-
-| Field           | Type         | Null | Key | Default | Extra |
-|-----------------|--------------|------|-----|---------|-------|
-| tenant_code     | varchar(64)  | NO   | PRI | NULL    |       |
-| groupName       | varchar(50)  | NO   |     | NULL    |       |
-| tenant_name     | varchar(256) | YES  |     | NULL    |       |
-| tenant_ID       | varchar(64)  | YES  |     | NULL    |       |
-| tenant_password | varchar(64)  | YES  |     | NULL    |       |
-| session_timeout | varchar(64)  | YES  |     | NULL    |       |
-
 **Group tables**
 
 Group metadata table:
