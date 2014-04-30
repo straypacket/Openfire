@@ -167,24 +167,119 @@ Extra database tables
 ---------------------
 In order to have second device checking mechanisms in Openfire, the following table needs to be created in the Openfire database.
 
+**Second device table:**
+
 ```
 CREATE TABLE ofSecondDevice ( 
 	secondID VARCHAR(64) NOT NULL, 
-	secondPass VARCHAR(255) NOT NULL, 
-	jid VARCHAR(255) NOT NULL UNIQUE,
+	secondPass VARCHAR(256) NOT NULL, 
+	jid VARCHAR(256) NOT NULL UNIQUE,
 	PRIMARY KEY (secondID) 
 );
 
 ```
 
-The table looks like the following.
-
 | Field      | Type         | Null | Key | Default | Extra |
 |------------|--------------|------|-----|---------|-------|
 | secondID   | varchar(64)  | NO   | PRI | NULL    |       |
-| secondPass | varchar(255) | NO   |     | NULL    |       |
-| jid        | varchar(255) | NO   | UNI | NULL    |       |
+| secondPass | varchar(256) | NO   |     | NULL    |       |
+| jid        | varchar(256) | NO   | UNI | NULL    |       |
 
+**User tables**
+
+User metadata table:
+
+The column `user_jid` connects with Openfire world.
+
+```
+CREATE TABLE ofUserMetadata (
+	user_code VARCHAR(64) NOT NULL,
+	user_jid VARCHAR(256) NOT NULL,
+	tenant_code VARCHAR(64), 
+	user_name VARCHAR(64), 
+	dept_code VARCHAR(64), 
+	phone VARCHAR(64),
+	create_date VARCHAR(64), 
+	pre_register VARCHAR(64),
+	PRIMARY KEY (user_code)
+);
+```
+
+| Field        | Type         | Null | Key | Default | Extra |
+|--------------|--------------|------|-----|---------|-------|
+| user_code    | varchar(64)  | NO   | PRI | NULL    |       |
+| user_jid     | varchar(256) | YES  |     | NULL    |       |
+| tenant_code  | varchar(64)  | YES  |     | NULL    |       |
+| user_name    | varchar(64)  | YES  |     | NULL    |       |
+| dept_code    | varchar(64)  | YES  |     | NULL    |       |
+| phone        | varchar(64)  | YES  |     | NULL    |       |
+| create_date  | varchar(64)  | YES  |     | NULL    |       |
+| pre_register | varchar(64)  | YES  |     | NULL    |       |
+| joined       | tinyint(1)   | YES  |     | NULL    |       |
+
+
+User devices table:
+
+```
+CREATE TABLE ofUserDevices (
+	user_code VARCHAR(64) NOT NULL, 
+	device VARCHAR(256), 
+	PRIMARY KEY (user_code)
+);
+```
+
+| Field     | Type         | Null | Key | Default | Extra |
+|-----------|--------------|------|-----|---------|-------|
+| user_code | varchar(64)  | NO   | PRI | NULL    |       |
+| device    | varchar(256) | YES  |     | NULL    |       |
+
+
+**Tenant tables**
+
+Tenant metadata table:
+
+The column `groupName` connects with Openfire world.
+
+```
+CREATE TABLE ofTenantMetadata (
+	tenant_code VARCHAR(64) NOT NULL, 
+	groupName VARCHAR(50) NOT NULL,
+	tenant_name VARCHAR(256),
+	tenant_ID VARCHAR(64), 
+	tenant_password VARCHAR(64),
+	session_timeout VARCHAR(64),
+	PRIMARY KEY (tenant_code)
+);
+```
+
+| Field           | Type         | Null | Key | Default | Extra |
+|-----------------|--------------|------|-----|---------|-------|
+| tenant_code     | varchar(64)  | NO   | PRI | NULL    |       |
+| groupName       | varchar(50)  | NO   |     | NULL    |       |
+| tenant_name     | varchar(256) | YES  |     | NULL    |       |
+| tenant_ID       | varchar(64)  | YES  |     | NULL    |       |
+| tenant_password | varchar(64)  | YES  |     | NULL    |       |
+| session_timeout | varchar(64)  | YES  |     | NULL    |       |
+
+**Group tables**
+
+Group metadata table:
+
+The column `muc_jid` connects with Openfire world.
+Owner, name and users are already included in Openfire.
+
+```
+CREATE TABLE ofGroupMetadata (
+	group_code VARCHAR(64),
+	muc_jid VARCHAR(256),
+	PRIMARY KEY (group_code)
+);
+```
+
+| Field      | Type         | Null | Key | Default | Extra |
+|------------|--------------|------|-----|---------|-------|
+| group_code | varchar(64)  | NO   | PRI |         |       |
+| muc_jid    | varchar(256) | YES  |     | NULL    |       |
 
 
 About
