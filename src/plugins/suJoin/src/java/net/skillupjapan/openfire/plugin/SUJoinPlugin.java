@@ -82,13 +82,16 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     private boolean enabled;
     private Collection<String> allowedIPs;
 
-    private static final String ADD_USER = "INSERT INTO ofUserMetadata (user_code, group_code, tenant_code, user_name, dept_code, phone, pre_register, joined) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE user_code=VALUES(user_code)";
+    // User management queries
+    private static final String ADD_USER = "INSERT INTO ofUserMetadata (user_code, group_code, tenant_code, user_name, dept_code, phone, pre_register, joined) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE user_name=VALUES(user_name)";
     private static final String GET_USER = "SELECT user_code, tenant_code, user_name, dept_code, phone, pre_register, joined FROM ofUserMetadata WHERE user_name LIKE ?";
     private static final String DELETE_USER = "DELETE FROM ofUserMetadata WHERE user_name=?";
     private static final String ADD_USER_DEVICE = "INSERT INTO ofUserDevices (username, device) VALUES (?,?)";
     private static final String REMOVE_USER_DEVICES = "DELETE FROM ofUserDevices WHERE username=?";
     private static final String USERS_BY_TENANT = "SELECT user_name FROM ofUserMetadata WHERE tenant_code=?";
+    private static final String GET_USER_TENANT_CODE = "SELECT tenant_code FROM ofUserMetadata WHERE user_name=?";
 
+    // MUC management queries
     private static final String ADD_GROUP = "INSERT INTO ofGroupMetadata (group_code, muc_jid) VALUES (?,?)";
 
     public void initializePlugin(PluginManager manager, File pluginDirectory) {
@@ -126,7 +129,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
      */
     public void editUser(String username, String password, String name, String email, String tenantNames, String devices,
         String user_code, String group_code, String tenant_code, String dept_code, String phone, String pre_register)
-            throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException, SQLException
+            throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException, SQLException, SharedGroupException
     {
         Connection con = null;
         PreparedStatement pstmt = null;
@@ -156,18 +159,19 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
      */
     public void createUser(String username, String password, String name, String email, String tenantNames, String devices,
         String user_code, String group_code, String tenant_code, String dept_code, String phone, String pre_register, Boolean update)
-            throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException, SQLException
+            throws UserAlreadyExistsException, GroupAlreadyExistsException, UserNotFoundException, GroupNotFoundException, SQLException, SharedGroupException
     {
         if (!update){
             userManager.createUser(username, password, name, email);
-            userManager.getUser(username);
         }
+
+        User affectedUser = userManager.getUser(username);
 
         // Begin JOIN Metadata
         Connection con = null;
         PreparedStatement pstmt = null;
         PreparedStatement pstmt1 = null;
-        ResultSet rs = null;
+        PreparedStatement pstmt2 = null;
 
         try {
             con = DbConnectionManager.getConnection();
@@ -200,13 +204,31 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
                 }
             }
 
+            // Update users rosters
+            ResultSet rs = null;
+            Roster newUserRoster = rosterManager.getRoster(username);
+            JID newUserJID = server.createJID(username, null);
+            pstmt2 = con.prepareStatement(USERS_BY_TENANT);
+            pstmt2.setString(1, tenant_code);
+
+            Log.warn("USERS_BY_TENANT query: " + pstmt2);
+
+            rs = pstmt2.executeQuery();
+            if (rs.next()) {
+                String tenantUser = rs.getString(1);
+                Roster tenantRoster = rosterManager.getRoster(tenantUser);
+                JID tenantJID = server.createJID(tenantUser, null);
+
+                // Add user to newly created user roster
+                newUserRoster.createRosterItem(newUserJID, true, true);
+
+                // Add newly create user to existing user roster
+                tenantRoster.createRosterItem(tenantJID, true, true);
+            }
+
         } finally {
             DbConnectionManager.closeConnection(con);
         }
-
-        // TO DO:
-        // - Add all users with the same tenant_id to the user roster
-        // - Add user to other users roster with the same tenant_id
     }
 
     /**
@@ -220,34 +242,64 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
      */
     public void deleteUser(String username) throws UserNotFoundException, SharedGroupException, SQLException
     {
-        User user = getUser(username);
-        userManager.deleteUser(user);
-
-		rosterManager.deleteRoster(server.createJID(username, null));
-
         Connection con = null;
         PreparedStatement pstmt = null;
         PreparedStatement pstmt1 = null;
+        PreparedStatement pstmt2 = null;
+        PreparedStatement pstmt3 = null;
+        ResultSet rs = null;
+        String tenant_code = null;
 
         try {
             con = DbConnectionManager.getConnection();
-            pstmt = con.prepareStatement(DELETE_USER);
+            pstmt = con.prepareStatement(GET_USER_TENANT_CODE);
             pstmt.setString(1, username);
 
-            Log.warn("DELETE_USER query: " + pstmt);
-            pstmt.executeUpdate();
+            Log.warn("GET_USER_TENANT_CODE query: " + pstmt1);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                tenant_code = rs.getString(1);
+            }
 
-            pstmt1 = con.prepareStatement(REMOVE_USER_DEVICES);
+            pstmt1 = con.prepareStatement(DELETE_USER);
             pstmt1.setString(1, username);
 
-            Log.warn("REMOVE_USER_DEVICES query: " + pstmt1);
-            pstmt1.executeUpdate();
+            Log.warn("DELETE_USER query: " + pstmt1);
+            pstmt.executeUpdate();
+
+            pstmt2 = con.prepareStatement(REMOVE_USER_DEVICES);
+            pstmt2.setString(1, username);
+
+            Log.warn("REMOVE_USER_DEVICES query: " + pstmt2);
+            pstmt2.executeUpdate();
+
+            // Update users rosters
+            Roster newUserRoster = rosterManager.getRoster(username);
+            JID newUserJID = server.createJID(username, null);
+            pstmt3 = con.prepareStatement(USERS_BY_TENANT);
+            pstmt3.setString(1, tenant_code);
+
+            Log.warn("USERS_BY_TENANT query: " + pstmt3);
+
+            rs = pstmt3.executeQuery();
+            if (rs.next()) {
+                String tenantUser = rs.getString(1);
+                Roster tenantRoster = rosterManager.getRoster(tenantUser);
+                JID tenantJID = server.createJID(tenantUser, null);
+
+                // Remove user from tenant roster
+                tenantRoster.deleteRosterItem(tenantJID, true);
+            }
+
         } finally {
             DbConnectionManager.closeConnection(con);
         }
 
-        // TO DO:
-        // - Remove user to other users roster with the same tenant_id
+        // Delete from openfire
+        User user = getUser(username);
+        userManager.deleteUser(user);
+
+        rosterManager.deleteRoster(server.createJID(username, null));
     }
 
     /**
