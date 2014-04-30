@@ -83,7 +83,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     private Collection<String> allowedIPs;
 
     private static final String ADD_USER = "INSERT INTO ofUserMetadata (user_code, group_code, tenant_code, user_name, dept_code, phone, pre_register, joined) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE user_code=VALUES(user_code)";
-    private static final String GET_USER = "SELECT user_code, tenant_code, user_name, dept_code, phone, pre_register, joined FROM ofUserMetadata WHERE user_jid LIKE ?";
+    private static final String GET_USER = "SELECT user_code, tenant_code, user_name, dept_code, phone, pre_register, joined FROM ofUserMetadata WHERE user_name LIKE ?";
     private static final String DELETE_USER = "DELETE FROM ofUserMetadata WHERE user_name=?";
     private static final String ADD_USER_DEVICE = "INSERT INTO ofUserDevices (username, device) VALUES (?,?)";
     private static final String REMOVE_USER_DEVICES = "DELETE FROM ofUserDevices WHERE username=?";
