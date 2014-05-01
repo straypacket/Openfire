@@ -101,7 +101,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     private static final String GET_USER_TENANT_CODE = "SELECT tenant_code FROM ofUserMetadata WHERE user_name=?";
 
     // MUC management queries
-    private static final String ADD_GROUP = "INSERT INTO ofGroupMetadata (group_code, muc_jid) VALUES (?,?)";
+    private static final String ADD_GROUP = "INSERT INTO ofGroupMetadata (group_code, tenant_code, muc_jid) VALUES (?,?,?) ON DUPLICATE KEY UPDATE group_code=VALUES(group_code)";
 
     public void initializePlugin(PluginManager manager, File pluginDirectory) {
         server = XMPPServer.getInstance();
@@ -623,8 +623,9 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         return result;
     }
 
-    public void addMUC(String tenant_code, String group_name, String group_users, String owner_name)
-            throws NotAllowedException, ConflictException, ForbiddenException, CannotBeInvitedException, UserNotFoundException, UserAlreadyExistsException, SharedGroupException
+    public void addMUC(String tenant_code, String group_name, String group_users, String owner_name, String group_code)
+            throws NotAllowedException, ConflictException, ForbiddenException, CannotBeInvitedException, 
+            UserNotFoundException, UserAlreadyExistsException, SharedGroupException, SQLException
     {
         JID ownerJID = server.createJID(owner_name, null);
         MUCRoom newMUC = mucService.getChatRoom(group_name, ownerJID);
@@ -645,6 +646,24 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
                 // Add room JID to user roster
                 addRosterItem(user, newMUC.getJID().toString(), group_name, "3", "");
             }
+        }
+
+        // Add metadata
+        Connection con = null;
+        PreparedStatement pstmt = null;
+
+        try {
+            con = DbConnectionManager.getConnection();
+            pstmt = con.prepareStatement(ADD_GROUP);
+            pstmt.setString(1, group_code);
+            pstmt.setString(2, tenant_code);
+            pstmt.setString(3, newMUC.getJID().toString());
+
+            Log.warn("ADD_GROUP query: " + pstmt);
+            pstmt.executeUpdate();
+
+        } finally {
+            DbConnectionManager.closeConnection(con);
         }
     }
 

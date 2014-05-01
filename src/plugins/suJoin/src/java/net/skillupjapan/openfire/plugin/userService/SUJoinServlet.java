@@ -126,7 +126,7 @@ public class SUJoinServlet extends HttpServlet {
          * Group parameters
          *
          * Example HTTP body:
-         * tenantcode=t1&groupname=the_chat&ownername=pratchett&groupusers=pratchett1,kafka
+         * tenantcode=t1&group_code=g1&groupname=the_chat&ownername=pratchett&groupusers=pratchett1,kafka
          */
         String group_name = request.getParameter("groupname");
         String group_users = request.getParameter("groupusers");
@@ -221,7 +221,7 @@ public class SUJoinServlet extends HttpServlet {
              * MUC management
              */
             else if ("add_group".equals(type)) {
-                plugin.addMUC(tenant_code, group_name, group_users, owner_name);
+                plugin.addMUC(tenant_code, group_name, group_users, owner_name, group_code);
                 replyMessage("ok",response, out);
             }
             else if ("edit_group".equals(type)) {
