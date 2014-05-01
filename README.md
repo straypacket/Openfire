@@ -149,7 +149,13 @@ wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=search_us
 Add group:
 
 ```
-wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=add_group&secret=pCdk7C26&tenantcode=t1&groupname=the_chat&ownername=pratchett&groupusers=pratchett1,kafka" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
+wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=add_group&secret=pCdk7C26&tenantcode=t1&groupname=the_chat&ownername=pratchett&groupusers=pratchett1,kafka&groupcode=g1" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
+```
+
+Delete group:
+
+```
+wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=delete_group&secret=pCdk7C26&groupcode=g1" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
 ```
 
 Get all groups:
@@ -255,6 +261,7 @@ Owner, name and users are already included in Openfire.
 ```
 CREATE TABLE ofGroupMetadata (
 	group_code VARCHAR(64),
+	group_name VARCHAR(256),
 	tenant_code VARCHAR(64),
 	muc_jid VARCHAR(256),
 	PRIMARY KEY (group_code)
@@ -264,6 +271,7 @@ CREATE TABLE ofGroupMetadata (
 | Field       | Type         | Null | Key | Default | Extra |
 |-------------|--------------|------|-----|---------|-------|
 | group_code  | varchar(64)  | NO   | PRI |         |       |
+| group_name  | varchar(256) | NO   | PRI |         |       |
 | tenant_code | varchar(64)  | NO   |     |         |       |
 | muc_jid     | varchar(256) | YES  |     | NULL    |       |
 

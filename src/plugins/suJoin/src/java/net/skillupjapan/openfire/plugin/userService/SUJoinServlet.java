@@ -158,7 +158,7 @@ public class SUJoinServlet extends HttpServlet {
          }
 
         // Some checking is required on the username
-        if (username == null && !type.equals("get_all_users") && !type.equals("delete_group") && !type.equals("get_all_groups") && !type.equals("add_group") ){
+        if (username == null && !type.equals("get_all_users") && !type.equals("delete_group") && !type.equals("get_all_groups") && !type.equals("add_group") && !type.equals("delete_group")){
             replyError("IllegalArgumentException1",response, out);
             return;
         }
@@ -225,11 +225,11 @@ public class SUJoinServlet extends HttpServlet {
                 replyMessage("ok",response, out);
             }
             else if ("edit_group".equals(type)) {
-                plugin.updateRosterItem(username, item_jid, name, sub, tenantNames);
-                replyMessage("ok",response, out);
+                // plugin.updateRosterItem(username, item_jid, name, sub, tenantNames);
+                // replyMessage("ok",response, out);
             }
             else if ("delete_group".equals(type)) {
-                plugin.deleteRosterItem(username, item_jid);
+                plugin.removeMUC(group_code);
                 replyMessage("ok",response, out);
             }
             else if ("get_all_groups".equals(type)) {
@@ -237,8 +237,8 @@ public class SUJoinServlet extends HttpServlet {
                 replyMessage(rooms,response, out);
             }
             else if ("search_group".equals(type)) {
-                plugin.searchMUCs();
-                replyMessage("ok",response, out);
+                // plugin.searchMUCs();
+                // replyMessage("ok",response, out);
             }
             else {
                 Log.warn("The SUJoin servlet received an invalid request of type: " + type);

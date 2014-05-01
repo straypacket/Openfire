@@ -101,7 +101,10 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     private static final String GET_USER_TENANT_CODE = "SELECT tenant_code FROM ofUserMetadata WHERE user_name=?";
 
     // MUC management queries
-    private static final String ADD_GROUP = "INSERT INTO ofGroupMetadata (group_code, tenant_code, muc_jid) VALUES (?,?,?) ON DUPLICATE KEY UPDATE group_code=VALUES(group_code)";
+    private static final String ADD_GROUP = "INSERT INTO ofGroupMetadata (group_code, group_name, tenant_code, muc_jid) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE group_code=VALUES(group_code)";
+    private static final String DELETE_GROUP = "DELETE FROM ofGroupMetadata WHERE group_code=?";
+    private static final String GET_GROUP_BY_NAME = "SELECT * from ofGroupMetadata WHERE group_code=? GROUP BY muc_jid";
+
 
     public void initializePlugin(PluginManager manager, File pluginDirectory) {
         server = XMPPServer.getInstance();
@@ -623,6 +626,89 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         return result;
     }
 
+    /*
+     * Removes a MUC 
+     *
+     */
+    public void removeMUC(String group_code)
+            throws NotAllowedException, ConflictException, ForbiddenException, CannotBeInvitedException, 
+            UserNotFoundException, UserAlreadyExistsException, SharedGroupException, SQLException
+    {
+
+        // Add metadata
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+        ResultSet rs = null;
+        Collection<String> mucNames = new ArrayList<String>();
+
+        try {
+            con = DbConnectionManager.getConnection();
+
+            // Get JIDs before deleting metadata
+            pstmt = con.prepareStatement(GET_GROUP_BY_NAME);
+            pstmt.setString(1, group_code);
+
+            Log.warn("GET_GROUP_BY_NAME query: " + pstmt);
+            rs = pstmt.executeQuery();
+            while (rs.next()) {
+                 mucNames.add(rs.getString(2));
+            }
+
+            Log.warn("mucNames: " + mucNames.toString());
+
+            // Delete metadata
+            pstmt1 = con.prepareStatement(DELETE_GROUP);
+            pstmt1.setString(1, group_code);
+
+            Log.warn("DELETE_GROUP query: " + pstmt1);
+            //pstmt1.executeUpdate();
+
+        } finally {
+            DbConnectionManager.closeConnection(con);
+        }
+
+        // Delete group from the involved users rosters
+        for (String muc: mucNames) {
+            MUCRoom newMUC = mucService.getChatRoom(muc);
+            if (newMUC != null) {
+                // get all MUC users
+                Collection<JID> membersJIDs = newMUC.getMembers();
+                Collection<JID> ownersJIDs = newMUC.getOwners();
+                Collection<JID> outcastsJIDs = newMUC.getOutcasts();
+                Collection<JID> adminsJIDs = newMUC.getAdmins();
+                String roomService = muc + "@" + mucService.getServiceDomain();
+
+                for (JID mJID : membersJIDs) {
+                    Log.warn("Removing " + roomService + " from " + mJID.getNode());
+                    deleteRosterItem(mJID.getNode(), roomService);
+                }
+
+                for (JID mJID : ownersJIDs) {
+                    Log.warn("Removing " + roomService + " from " + mJID.getNode());
+                    deleteRosterItem(mJID.getNode(), roomService);
+                }
+
+                for (JID mJID : outcastsJIDs) {
+                    Log.warn("Removing " + roomService + " from " + mJID.getNode());
+                    deleteRosterItem(mJID.getNode(), roomService);
+                }
+
+                for (JID mJID : adminsJIDs) {
+                    Log.warn("Removing " + roomService + " from " + mJID.getNode());
+                    deleteRosterItem(mJID.getNode(), roomService);                
+                }
+
+                // Delete MUC
+                newMUC.destroyRoom(null, null); 
+            }
+        }
+    }
+    
+    /**
+     * Adds a new MUC 
+     *
+     */
     public void addMUC(String tenant_code, String group_name, String group_users, String owner_name, String group_code)
             throws NotAllowedException, ConflictException, ForbiddenException, CannotBeInvitedException, 
             UserNotFoundException, UserAlreadyExistsException, SharedGroupException, SQLException
@@ -656,8 +742,9 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
             con = DbConnectionManager.getConnection();
             pstmt = con.prepareStatement(ADD_GROUP);
             pstmt.setString(1, group_code);
-            pstmt.setString(2, tenant_code);
-            pstmt.setString(3, newMUC.getJID().toString());
+            pstmt.setString(2, group_name);
+            pstmt.setString(3, tenant_code);
+            pstmt.setString(4, newMUC.getJID().toString());
 
             Log.warn("ADD_GROUP query: " + pstmt);
             pstmt.executeUpdate();
