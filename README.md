@@ -146,6 +146,19 @@ Search for user:
 wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=search_user&secret=pCdk7C26&username=kafka" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
 ```
 
+Add group:
+
+```
+wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=add_group&secret=pCdk7C26&tenantcode=t1&groupname=the_chat&ownername=pratchett&groupusers=pratchett1,kafka" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
+```
+
+Get all groups:
+
+```
+wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=get_all_groups&secret=pCdk7C26" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
+```
+
+
 
 SUJ Message Handler
 -------------------

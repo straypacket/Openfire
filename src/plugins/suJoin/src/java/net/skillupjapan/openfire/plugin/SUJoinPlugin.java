@@ -35,6 +35,7 @@ import org.jivesoftware.openfire.group.Group;
 import org.jivesoftware.openfire.group.GroupManager;
 import org.jivesoftware.openfire.group.GroupNotFoundException;
 import org.jivesoftware.openfire.group.GroupAlreadyExistsException;
+import org.jivesoftware.openfire.SharedGroupException;
 import org.jivesoftware.openfire.lockout.LockOutManager;
 import org.jivesoftware.openfire.roster.Roster;
 import org.jivesoftware.openfire.roster.RosterItem;
@@ -44,7 +45,12 @@ import org.jivesoftware.openfire.user.User;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserManager;
 import org.jivesoftware.openfire.user.UserNotFoundException;
+import org.jivesoftware.openfire.muc.MUCRoom;
+import org.jivesoftware.openfire.muc.MUCRole;
 import org.jivesoftware.openfire.muc.ConflictException;
+import org.jivesoftware.openfire.muc.ForbiddenException;
+import org.jivesoftware.openfire.muc.NotAllowedException;
+import org.jivesoftware.openfire.muc.CannotBeInvitedException;
 import org.jivesoftware.openfire.muc.MultiUserChatService;
 import org.jivesoftware.openfire.muc.MultiUserChatManager;
 import org.jivesoftware.util.JiveGlobals;
@@ -55,6 +61,8 @@ import org.jivesoftware.util.Log;
 import org.jivesoftware.database.DbConnectionManager;
 
 import org.xmpp.packet.JID;
+import org.xmpp.packet.IQ;
+import org.dom4j.Element;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -604,10 +612,40 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
      * Returns all MUCs 
      *
      */
-    public void getAllMUCs()
+    public String getAllMUCs()
     {
-        //User user = getUser(username);
-        //LockOutManager.getInstance().disableAccount(username, null, null);
+        String result = "rooms=";
+        List<MUCRoom> mucs = mucService.getChatRooms();
+        for (MUCRoom room: mucs) {
+            result += room.getName() + ",";
+        }
+
+        return result;
+    }
+
+    public void addMUC(String tenant_code, String group_name, String group_users, String owner_name)
+            throws NotAllowedException, ConflictException, ForbiddenException, CannotBeInvitedException, UserNotFoundException, UserAlreadyExistsException, SharedGroupException
+    {
+        JID ownerJID = server.createJID(owner_name, null);
+        MUCRoom newMUC = mucService.getChatRoom(group_name, ownerJID);
+
+        // Add room JID to owner roster
+        addRosterItem(owner_name, newMUC.getJID().toString(), group_name, "3", "");
+
+        // Add users to MUC
+        if (group_users != null && newMUC.getRole() != null) {
+            StringTokenizer tkn = new StringTokenizer(group_users, ",");
+
+            while (tkn.hasMoreTokens())
+            {
+                String user = tkn.nextToken();
+                JID userJID = server.createJID(user, null);
+                newMUC.addMember(userJID, user, newMUC.getRole());
+
+                // Add room JID to user roster
+                addRosterItem(user, newMUC.getJID().toString(), group_name, "3", "");
+            }
+        }
     }
 
     /**

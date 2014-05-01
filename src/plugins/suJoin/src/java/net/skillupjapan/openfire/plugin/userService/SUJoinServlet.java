@@ -38,8 +38,12 @@ import org.jivesoftware.openfire.XMPPServer;
 import net.skillupjapan.openfire.plugin.SUJoinPlugin;
 import org.jivesoftware.openfire.user.UserAlreadyExistsException;
 import org.jivesoftware.openfire.user.UserNotFoundException;
+import org.jivesoftware.openfire.muc.CannotBeInvitedException;
 import org.jivesoftware.openfire.group.GroupNotFoundException;
 import org.jivesoftware.openfire.muc.ConflictException;
+import org.jivesoftware.openfire.muc.NotAllowedException;
+import org.jivesoftware.openfire.muc.ForbiddenException;
+import org.jivesoftware.openfire.SharedGroupException;
 import org.jivesoftware.util.Log;
 import org.xmpp.packet.JID;
 
@@ -104,6 +108,9 @@ public class SUJoinServlet extends HttpServlet {
         String secret = request.getParameter("secret");
         /**
          * User parameters
+         *
+         * Example HTTP body:
+         * username=pratchett&password=ankmorpork&usercode=u1&tenantcode=t1&deptcode=d1&groupcode=g1&phone=123123123&pre_register=yes&devices=device1,device2,device3
          */
         String username = request.getParameter("username");
         String password = request.getParameter("password");
@@ -115,7 +122,15 @@ public class SUJoinServlet extends HttpServlet {
         String pre_register = request.getParameter("pre_register");
         String devices = request.getParameter("devices");
 
-        //username=pratchett&password=ankmorpork&usercode=u1&tenantcode=t1&deptcode=d1&groupcode=g1&phone=123123123&pre_register=yes&devices=device1,device2,device3
+        /**
+         * Group parameters
+         *
+         * Example HTTP body:
+         * tenantcode=t1&groupname=the_chat&ownername=pratchett&groupusers=pratchett1,kafka
+         */
+        String group_name = request.getParameter("groupname");
+        String group_users = request.getParameter("groupusers");
+        String owner_name = request.getParameter("ownername");
 
         String name = request.getParameter("name");
         String desc = request.getParameter("description");
@@ -143,15 +158,21 @@ public class SUJoinServlet extends HttpServlet {
          }
 
         // Some checking is required on the username
-        if (username == null && !type.equals("get_all_users") && !type.equals("delete_group") && !type.equals("get_all_groups") && !type.equals("get_all_groups") ){
-            replyError("IllegalArgumentException",response, out);
+        if (username == null && !type.equals("get_all_users") && !type.equals("delete_group") && !type.equals("get_all_groups") && !type.equals("add_group") ){
+            replyError("IllegalArgumentException1",response, out);
+            return;
+        }
+
+        // Some checking is required on the ownername
+        if (owner_name == null && type.equals("add_users")){
+            replyError("IllegalArgumentException2",response, out);
             return;
         }
 
         if ((type.equals("add_roster") || type.equals("update_roster") || type.equals("delete_roster")) &&
         	(item_jid == null || !(sub == null || sub.equals("-1") || sub.equals("0") ||
         	sub.equals("1") || sub.equals("2") || sub.equals("3")))) {
-            replyError("IllegalArgumentException",response, out);
+            replyError("IllegalArgumentException3",response, out);
             return;
         }
 
@@ -200,7 +221,7 @@ public class SUJoinServlet extends HttpServlet {
              * MUC management
              */
             else if ("add_group".equals(type)) {
-                plugin.addRosterItem(username, item_jid, name, sub, tenantNames);
+                plugin.addMUC(tenant_code, group_name, group_users, owner_name);
                 replyMessage("ok",response, out);
             }
             else if ("edit_group".equals(type)) {
@@ -212,8 +233,8 @@ public class SUJoinServlet extends HttpServlet {
                 replyMessage("ok",response, out);
             }
             else if ("get_all_groups".equals(type)) {
-                plugin.getAllMUCs();
-                replyMessage("ok",response, out);
+                String rooms = plugin.getAllMUCs();
+                replyMessage(rooms,response, out);
             }
             else if ("search_group".equals(type)) {
                 plugin.searchMUCs();
@@ -236,8 +257,17 @@ public class SUJoinServlet extends HttpServlet {
         catch (SharedGroupException e) {
         	replyError("SharedGroupException: " + e.toString(),response, out);
         }
+        catch (CannotBeInvitedException e) {
+            replyError("CannotBeInvitedException: " + e.toString(),response, out);
+        }
         catch (GroupNotFoundException e) {
             replyError("GroupNotFoundException: " + e.toString(), response, out);
+        }
+        catch (NotAllowedException e) {
+            replyError("NotAllowedException: " + e.toString(), response, out);
+        }
+        catch (ForbiddenException e) {
+            replyError("ForbiddenException: " + e.toString(), response, out);
         }
         catch (ConflictException e) {
             replyError("ConflictException: " + e.toString(), response, out);
