@@ -662,7 +662,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
             pstmt1.setString(1, group_code);
 
             Log.warn("DELETE_GROUP query: " + pstmt1);
-            //pstmt1.executeUpdate();
+            pstmt1.executeUpdate();
 
         } finally {
             DbConnectionManager.closeConnection(con);
