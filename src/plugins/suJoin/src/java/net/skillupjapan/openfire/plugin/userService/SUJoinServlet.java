@@ -158,7 +158,7 @@ public class SUJoinServlet extends HttpServlet {
          }
 
         // Some checking is required on the username
-        if (username == null && !type.equals("get_all_users") && !type.equals("delete_group") && !type.equals("get_all_groups") && !type.equals("add_group") && !type.equals("delete_group") && !type.equals("search_group")){
+        if (username == null && !type.equals("get_all_users") && !type.equals("delete_group") && !type.equals("get_all_groups") && !type.equals("add_group") && !type.equals("delete_group") && !type.equals("search_group") && !type.equals("edit_group")){
             replyError("IllegalArgumentException1",response, out);
             return;
         }
@@ -225,8 +225,8 @@ public class SUJoinServlet extends HttpServlet {
                 replyMessage("ok",response, out);
             }
             else if ("edit_group".equals(type)) {
-                // plugin.updateRosterItem(username, item_jid, name, sub, tenantNames);
-                // replyMessage("ok",response, out);
+                plugin.editMUC(tenant_code, group_name, group_users, owner_name, group_code);
+                replyMessage("ok",response, out);
             }
             else if ("delete_group".equals(type)) {
                 plugin.removeMUC(group_code);

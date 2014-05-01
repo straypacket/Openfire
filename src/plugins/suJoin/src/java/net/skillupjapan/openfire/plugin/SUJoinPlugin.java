@@ -676,7 +676,7 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         return result;
     }
 
-    /*
+    /**
      * Removes a MUC 
      *
      */
@@ -755,6 +755,20 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
         }
     }
     
+    /**
+     * Edits an existing MUC 
+     *
+     */
+    public void editMUC(String tenant_code, String group_name, String group_users, String owner_name, String group_code)
+            throws NotAllowedException, ConflictException, ForbiddenException, CannotBeInvitedException, 
+            UserNotFoundException, UserAlreadyExistsException, SharedGroupException, SQLException
+    {
+        // Too many check to be made, better to remove and delete
+        // This way we handle corner cases such as groups not existing, etc
+        removeMUC(group_code);
+        addMUC(tenant_code, group_name, group_users, owner_name, group_code);
+    }
+
     /**
      * Adds a new MUC 
      *
