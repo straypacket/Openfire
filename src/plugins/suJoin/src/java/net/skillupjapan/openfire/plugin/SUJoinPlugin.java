@@ -103,8 +103,8 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     // MUC management queries
     private static final String ADD_GROUP = "INSERT INTO ofGroupMetadata (group_code, group_name, tenant_code, muc_jid) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE group_code=VALUES(group_code)";
     private static final String DELETE_GROUP = "DELETE FROM ofGroupMetadata WHERE group_code=?";
-    private static final String GET_GROUP_BY_NAME = "SELECT * from ofGroupMetadata WHERE group_code=? GROUP BY muc_jid";
-
+    private static final String GET_GROUP_BY_GROUP_CODE = "SELECT * from ofGroupMetadata WHERE group_code=? GROUP BY muc_jid";
+    private static final String GET_GROUP_BY_TENANT_CODE = "SELECT * from ofGroupMetadata WHERE tenant_code=? GROUP BY muc_jid";
 
     public void initializePlugin(PluginManager manager, File pluginDirectory) {
         server = XMPPServer.getInstance();
@@ -599,16 +599,66 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
     }
 
     /**
-     * Search a given MUC
+     * Search a given MUC from metadata
      *
-     * @param muc the MUC of the server.
+     * @param group_code the group_code of the MUC.
+     * @param tenant_code the tenant_code of the MUC.
      * @throws MUCNotFoundException if the requested MUC
      *         does not exist in the local server.
+     * @throws SQLException if there is an error in the DB query
      */
-    public void searchMUCs() throws ConflictException
+    public String searchMUCs(String group_code, String tenant_code) throws ConflictException, SQLException
     {
-        //User user = getUser(username);
-        //LockOutManager.getInstance().disableAccount(username, null, null);
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        PreparedStatement pstmt1 = null;
+        ResultSet rs = null;
+        Collection<String> mucNames = new ArrayList<String>();
+        String result = "";
+
+        try {
+            con = DbConnectionManager.getConnection();
+
+            // Search by group code
+            if (group_code != null) {
+                pstmt = con.prepareStatement(GET_GROUP_BY_GROUP_CODE);
+                pstmt.setString(1, group_code);
+
+                Log.warn("GET_GROUP_BY_GROUP_CODE query: " + pstmt);
+                rs = pstmt.executeQuery();
+                while (rs.next()) {
+                     mucNames.add(rs.getString(2));
+                }
+            }
+
+            // Search by tenant code
+            if (tenant_code != null) {
+                pstmt1 = con.prepareStatement(GET_GROUP_BY_TENANT_CODE);
+                pstmt1.setString(1, tenant_code);
+
+                Log.warn("GET_GROUP_BY_TENANT_CODE query: " + pstmt1);
+                rs = pstmt1.executeQuery();
+                while (rs.next()) {
+                    String code = rs.getString(2);
+                    // Only add unique codes
+                    if (!mucNames.contains(code)) {
+                        mucNames.add(code);
+                    }
+                }
+            }
+
+        } finally {
+            DbConnectionManager.closeConnection(con);
+        }
+
+        Log.warn("mucNames: " + mucNames.toString());
+
+        for(String mucName: mucNames) {
+            result += mucName + ";";
+        }
+
+        return result;
     }
 
     /**
@@ -646,10 +696,10 @@ public class SUJoinPlugin implements Plugin, PropertyEventListener {
             con = DbConnectionManager.getConnection();
 
             // Get JIDs before deleting metadata
-            pstmt = con.prepareStatement(GET_GROUP_BY_NAME);
+            pstmt = con.prepareStatement(GET_GROUP_BY_GROUP_CODE);
             pstmt.setString(1, group_code);
 
-            Log.warn("GET_GROUP_BY_NAME query: " + pstmt);
+            Log.warn("GET_GROUP_BY_GROUP_CODE query: " + pstmt);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                  mucNames.add(rs.getString(2));

@@ -164,6 +164,12 @@ Get all groups:
 wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=get_all_groups&secret=pCdk7C26" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
 ```
 
+Search for groups:
+
+```
+wget -S -O - -T 1 -t 1 -nv -q --no-check-certificate --post-data="type=delete_group&secret=pCdk7C26&groupcode=g1&tenantcode=t1" "https://ec2-54-249-68-201.ap-northeast-1.compute.amazonaws.com:9091/plugins/suJoin/sujoin"
+```
+
 
 
 SUJ Message Handler
